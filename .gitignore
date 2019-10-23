@@ -1,0 +1,16 @@
+bin/parser
+samples/amietest.qk
+src/ASTNode.o
+src/Messages.o
+src/lex.yy.cxx
+src/lex.yy.h
+src/lex.yy.h.gch
+src/lex.yy.o
+src/location.hh
+src/parser.o
+src/position.hh
+src/quack.output
+src/quack.tab.cxx
+src/quack.tab.hxx
+src/quack.tab.o
+src/stack.hh
