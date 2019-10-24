@@ -299,9 +299,18 @@ expr:  expr '*' expr   { $$ = AST::Call::binop("TIMES", *$1, *$3); }
                               auto zero = new AST::IntConst(0);
                               $$ = AST::Call::binop("MINUS", *zero, *$2);
                             }
+    /* Parenthesization */
+    | '(' expr ')'      { $$ = $2; }
     /* Comparisons */
     /* Boolean expressions are NOT syntactic sugar */
     | expr AND   expr     { $$ = new AST::And(*$1, *$3); }
+    | expr OR    expr     { $$ = new AST::Or(*$1, *$3); }
+    | NOT expr            { $$ = new AST::Not(*2); }
+    | expr EQUALS expr
+    | expr ATMOST expr
+    | expr '<' expr
+    | expr ATLEAST expr
+    | expr '>' expr
     ;
 
 
