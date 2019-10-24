@@ -45,15 +45,23 @@
     char*  str;
     /* Abstract syntax tree values */
     AST::ASTNode* node;  // Most general class
+    AST::Program* program; //  TODO: do we even need this? later maybe
     AST::Ident* ident;   // Identifiers are used in many places
     AST::LExpr* l_expr;
     AST::Load*  load;
     AST::Statement* statement;
     AST::Expr* expr;
     // Alas, looks like we need a member per sequence type
+    //AST::Seq* sequence; // TODO: do we need this?
     AST::Actuals* actuals;
     AST::Block* block;
+    AST::Class* cls;
     AST::Classes* classes;
+    AST::Formal* formal;
+    AST::Formals* formals;
+    AST::Method* method;
+    AST::Methods* methods;
+    AST::Type_Alternative* type_alternative;
     AST::Type_Alternatives* type_alternatives;
 }
 
@@ -68,6 +76,11 @@
 %type <statement> statement
 %type <node> pgm
 %type <classes> classes
+%type <cls> class
+%type <methods> methods
+%type <method> method
+%type <formals> formal_args formal_args_nonempty
+%type <formal> formal_arg
 %type <block> statements statement_block
 %type <actuals> actual_args actual_args_nonempty
 %type <block>  opt_elif_parts
@@ -135,32 +148,46 @@ pgm:	classes  statements
  *   starter code limits it to zero classes.
  */
 classes:   /* empty */      {  $$ = new AST::Classes(); }
-;
-//         |  classes class
-//        ;
+        |  classes class    { $$ = $1;
+                            $$->append($2);
+                            }
+        ;
 
-// class:    /* empty */
-//         | class_signature class_body
-//         ;
+class:  CLASS ident '(' formal_args ')' '{' statements methods '}'
+        { AST::Ident* dummy = new AST::Ident("no super");
+          $$ = new AST::Class(*$2, *dummy, *$7, *$8); }
+      | CLASS ident '(' formal_args ')' EXTENDS ident '{' statements methods '}'
+        { $$ = new AST::Class(*$2, *$7, *$9, *$10); }
+      ;
 
-// class_signature:  class ident ( formal_args_opt )
-//                 | class ident ( formal_args_opt ) extends ident
-//                 ;
+methods: /* empty */ { $$ = new AST::Methods(); }
+        | methods method { $$ = $1;
+                           $$->append($2);
+                          }
+        ;
 
-// formal_args_opt:  /* empty */
-//                 | formal_args
-//                 ;
+method: DEF ident '(' formal_args ')' statement_block
+        { AST::Ident* dummy = new AST::Ident("no return type specified");
+          $$ = new AST::Method(*$2, *$4, *dummy, *$6);
+        }
+      | DEF ident '(' formal_args ')' ':' ident statement_block
+        { $$ = new AST::Method(*$2, *$4, *$7, *$8); 
+        }
+      ;
 
-// formal_args:  formal_args ',' formal_arg
-//             | formal_arg
-//             ;
+formal_args: /* empty */ { $$ = new AST::Formals(); }
+          | formal_args_nonempty { $$ = $1; };
 
-// formal_arg: ident ':' ident
-//           ;
+formal_args_nonempty:  formal_args_nonempty ',' formal_arg
+              { $$ = $1;
+                $$->append($3);
+              }
+            | formal_arg { $$ = new AST::Formals();
+                           $$->append($1); }
+            ;
 
-// class_body: /* empty */ /* just for now */
-//           ;
-
+formal_arg: ident ':' ident { $$ = new AST::Formal(*$1, *$3); }
+          ;
 
 /* Zero or more statements 
  * (although a program with zero statements is pretty boring) 
