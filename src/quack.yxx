@@ -84,6 +84,9 @@
 %type <block> statements statement_block
 %type <actuals> actual_args actual_args_nonempty
 %type <block>  opt_elif_parts
+%type <type_alternative> type_alternative
+%type <type_alternatives> type_alternatives
+
 
 /* -------------------------------------------
  * Tokens.
@@ -219,8 +222,8 @@ statement_block: '{' statements '}'
  */ 
 
 statement: IF expr statement_block  opt_elif_parts
-	       { $$ = new AST::If(*$2, *$3, *$4); }
-	     ;
+	        { $$ = new AST::If(*$2, *$3, *$4); }
+	        ;
 
 opt_elif_parts:  ELIF expr statement_block  opt_elif_parts
              { $$ = new AST::Block();
@@ -252,8 +255,35 @@ statement: l_expr ':' ident '=' expr ';'
  * Statements: Bare Expressions
  * *************************************
  */ 
- statement: expr ';'
+ statement: expr ';' { $$ = $1; }
           ;
+
+statement: RETURN ';'
+          { AST::Stub* dummy = new AST::Stub("return statement without expr");
+            $$ = new AST::Return(*dummy); }
+          | RETURN expr ';'
+          { $$ = new AST::Return(*$2); }
+          ;
+
+
+statement: TYPECASE expr '{' type_alternatives '}'
+            { $$ = new AST::Typecase(*$2, *$4); }
+          ;
+
+type_alternatives: /* empty */ { $$ = new AST::Type_Alternatives(); }
+                  | type_alternatives type_alternative
+                    { $$ = $1;
+                      $$->append($2);
+                    }
+                  | type_alternative 
+                    { $$ = new AST::Type_Alternatives();
+                      $$->append($1);
+                    }
+                  ;
+
+type_alternative: ident ':' ident statement_block
+                  { $$ = new AST::Type_Alternative(*$1, *$3, *$4); }
+                  ;
 
 /* l_expr: Things we can assign to, or call.
  * (Evaluate to a location; type checking determines
@@ -305,12 +335,12 @@ expr:  expr '*' expr   { $$ = AST::Call::binop("TIMES", *$1, *$3); }
     /* Boolean expressions are NOT syntactic sugar */
     | expr AND   expr     { $$ = new AST::And(*$1, *$3); }
     | expr OR    expr     { $$ = new AST::Or(*$1, *$3); }
-    | NOT expr            { $$ = new AST::Not(*2); }
-    | expr EQUALS expr
-    | expr ATMOST expr
-    | expr '<' expr
-    | expr ATLEAST expr
-    | expr '>' expr
+    | NOT expr            { $$ = new AST::Not(*$2); }
+    | expr EQUALS expr    { $$ = AST::Call::binop("EQUALS", *$1, *$3); }
+    | expr ATMOST expr    { $$ = AST::Call::binop("ATMOST", *$1, *$3); }
+    | expr '<' expr       { $$ = AST::Call::binop("<", *$1, *$3); }
+    | expr ATLEAST expr   { $$ = AST::Call::binop("ATLEAST", *$1, *$3); }
+    | expr '>' expr       { $$ = AST::Call::binop(">", *$1, *$3); }
     ;
 
 
