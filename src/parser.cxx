@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
             AST::AST_print_context context;
             root->json(std::cout, context);
             std::cout << std::endl;
+            // STATIC SEMANTIC CHECK ON TREE??
         } else {
             std::cout << "No tree produced." << std::endl;
         }
