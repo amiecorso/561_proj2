@@ -23,12 +23,20 @@ struct instancevar {
 };
 
 class TypeNode {
-    string type;
-    string parent;
-    vector<string> children;
-    vector<instancevar> instance_vars;
-    vector<method> methods;
-    constructor construct;
+    public:
+        string type;
+        string parent;
+        vector<string> children;
+        vector<instancevar> instance_vars;
+        vector<method> methods;
+        constructor construct;
+
+        TypeNode(string name) {
+            type = name;
+            children = vector<string>();
+            instance_vars = vector<instancevar>();
+            methods = vector<method>();
+        }
 };
 
 typedef struct {
@@ -38,30 +46,55 @@ typedef struct {
 
 class StaticSemantics {
     AST::ASTNode* astroot;
-    map<string, TypeNode>* classhierarchy;
+    int found_error;
+    map<string, TypeNode>* hierarchy;
     map<string, string>* variabletypes;
 
     public:
         StaticSemantics() { // default constructor ??
             astroot = NULL;
-            classhierarchy = new map<string, TypeNode>();
+            found_error = 0;
+            hierarchy = new map<string, TypeNode>();
             variabletypes = new map<string, string>();
         }
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
             astroot = root;
-            classhierarchy = new map<string, TypeNode>();
+            found_error = 0;
+            hierarchy = new map<string, TypeNode>();
             variabletypes = new map<string, string>();
         }
         // TODO: create destructor?
 
+        void testMe() {
+            cout << "OMG I DID SOMETHING IN C++" << endl;
+            cout << thischecker << endl;
+        }
+
         void populateClassHierarchy() { // create class hierarchy
+            // create obj node?
+            TypeNode obj("Obj");
+            obj.parent = "TYPE_ERROR";
+            obj.children.push_back("Int");
+            obj.children.push_back("String");
+            obj.children.push_back("Boolean");
+            obj.children.push_back("Nothing");
+            hierarchy["Obj"] = obj; // insert into class hierarchy map
+
+            TypeNode integer("Int");
+            hierarchy["Int"] = integer;
+            TypeNode str("String");
+            hierarchy["String"] = str;
+            TypeNode boolean("Boolean");
+            hierarchy["Boolean"] = boolean;
+            // traverse the tree
 
 
+            // upon encountering new classes, create relevant class node in table
         }
 
         TablePointers* check() { // traverse and check AST, returning struct with pointers to tables
             TablePointers* tablePointers = new TablePointers();
-            tablePointers->ch = this->classhierarchy; // TODO what's wrong with this???
+            tablePointers->ch = this->hierarchy;
             tablePointers->vt = this->variabletypes;
         }
 };

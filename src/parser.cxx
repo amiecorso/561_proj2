@@ -6,6 +6,7 @@
 #include "lex.yy.h"
 #include "ASTNode.h"
 #include "Messages.h"
+#include "staticsemantics.cxx"
 
 #include <iostream>
 #include <unistd.h>  // getopt is here
@@ -70,6 +71,8 @@ int main(int argc, char **argv) {
             std::cout << std::endl;
             // STATIC SEMANTIC CHECK ON TREE
             // return (or null pointer if error)
+            StaticSemantics semanticChecker(root);
+            semanticChecker.testMe();
         } else {
             std::cout << "No tree produced." << std::endl;
         }
