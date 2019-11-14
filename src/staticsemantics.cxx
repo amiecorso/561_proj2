@@ -4,34 +4,53 @@
 #include <iostream>
 #include <unistd.h>  // getopt is here
 #include <map>
+#include <vector>
+
+using namespace std;
+
+struct method {
+    string methodname;
+    string returntype;
+};
+
+struct constructor {
+    string constructorname;
+};
+
+struct instancevar {
+    string instancename;
+    string instancetype;
+};
+
+class TypeNode {
+    string type;
+    string parent;
+    vector<string> children;
+    vector<instancevar> instance_vars;
+    vector<method> methods;
+    constructor construct;
+};
 
 typedef struct {
-    std::map<std::string, ClassNode>* ch;
-    std::map<std::string, std::string>* vt;
+    map<string, TypeNode>* ch;
+    map<string, string>* vt;
 } TablePointers;
-
-
-class ClassNode {
-    std::string name;
-    std::string parent;
-    std::string child;
-};
 
 class StaticSemantics {
     AST::ASTNode* astroot;
-    std::map<std::string, ClassNode>* classhierarchy;
-    std::map<std::string, std::string>* variabletypes;
+    map<string, TypeNode>* classhierarchy;
+    map<string, string>* variabletypes;
 
     public:
         StaticSemantics() { // default constructor ??
             astroot = NULL;
-            classhierarchy = new std::map<std::string, ClassNode>();
-            variabletypes = new std::map<std::string, std::string>();
+            classhierarchy = new map<string, TypeNode>();
+            variabletypes = new map<string, string>();
         }
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
             astroot = root;
-            classhierarchy = new std::map<std::string, ClassNode>();
-            variabletypes = new std::map<std::string, std::string>();
+            classhierarchy = new map<string, TypeNode>();
+            variabletypes = new map<string, string>();
         }
         // TODO: create destructor?
 
@@ -40,9 +59,9 @@ class StaticSemantics {
 
         }
 
-        TablePointers* check() { // traverse and check AST
+        TablePointers* check() { // traverse and check AST, returning struct with pointers to tables
             TablePointers* tablePointers = new TablePointers();
-            tablePointers->ch = this->classhierarchy;
+            tablePointers->ch = this->classhierarchy; // TODO what's wrong with this???
             tablePointers->vt = this->variabletypes;
         }
 };
