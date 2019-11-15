@@ -45,7 +45,6 @@ namespace AST {
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
-
     /*
      * Abstract base class for nodes that have sequences
      * of children, e.g., block of statements, sequence of
@@ -59,10 +58,10 @@ namespace AST {
      */
     template<class Kind>
     class Seq : public ASTNode {
-    protected:
+    public:
         std::string kind_;
         std::vector<Kind *> elements_;
-    public:
+
         Seq(std::string kind) : kind_{kind}, elements_{std::vector<Kind *>()} {}
 
         void append(Kind *el) { elements_.push_back(el); }
@@ -105,10 +104,11 @@ namespace AST {
     * store something in it).
     */
     class Ident : public LExpr {
-        std::string text_;
-    public:
-        explicit Ident(std::string txt) : text_{txt} {}
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        public:
+            std::string text_;
+
+            explicit Ident(std::string txt) : text_{txt} {}
+            void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
 
@@ -243,16 +243,17 @@ namespace AST {
     * and a list of methods.
     */
     class Class : public ASTNode {
-        Ident& name_;
-        Ident& super_;
-        ASTNode& constructor_;
-        Methods& methods_;
-    public:
-        explicit Class(Ident& name, Ident& super,
-                 ASTNode& constructor, Methods& methods) :
-            name_{name},  super_{super},
-            constructor_{constructor}, methods_{methods} {};
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        public:
+            Ident& name_;
+            Ident& super_;
+            ASTNode& constructor_;
+            Methods& methods_;
+
+            explicit Class(Ident& name, Ident& super,
+                    ASTNode& constructor, Methods& methods) :
+                name_{name},  super_{super},
+                constructor_{constructor}, methods_{methods} {};
+            void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
     /* A Quack program begins with a sequence of zero or more

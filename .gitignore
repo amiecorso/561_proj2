@@ -14,3 +14,7 @@ src/quack.tab.cxx
 src/quack.tab.hxx
 src/quack.tab.o
 src/stack.hh
+src/ASTNode.o
+src/ASTNode.h.gch
+src/staticsemantics.o 
+

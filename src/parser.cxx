@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
             // STATIC SEMANTIC CHECK ON TREE
             // return (or null pointer if error)
             StaticSemantics semanticChecker(root);
-            semanticChecker.testMe();
+            semanticChecker.populateClassHierarchy();
         } else {
             std::cout << "No tree produced." << std::endl;
         }

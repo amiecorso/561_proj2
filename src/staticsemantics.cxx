@@ -31,6 +31,12 @@ class TypeNode {
         vector<method> methods;
         constructor construct;
 
+        TypeNode() {
+            children = vector<string>();
+            instance_vars = vector<instancevar>();
+            methods = vector<method>();
+        }
+
         TypeNode(string name) {
             type = name;
             children = vector<string>();
@@ -39,36 +45,25 @@ class TypeNode {
         }
 };
 
-typedef struct {
+struct TablePointers{
     map<string, TypeNode>* ch;
     map<string, string>* vt;
-} TablePointers;
+};
 
 class StaticSemantics {
     AST::ASTNode* astroot;
     int found_error;
-    map<string, TypeNode>* hierarchy;
-    map<string, string>* variabletypes;
+    map<string, TypeNode> hierarchy;
+    map<string, string> variabletypes;
 
     public:
-        StaticSemantics() { // default constructor ??
-            astroot = NULL;
-            found_error = 0;
-            hierarchy = new map<string, TypeNode>();
-            variabletypes = new map<string, string>();
-        }
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
             astroot = root;
             found_error = 0;
-            hierarchy = new map<string, TypeNode>();
-            variabletypes = new map<string, string>();
+            hierarchy = map<string, TypeNode>();
+            variabletypes = map<string, string>();
         }
         // TODO: create destructor?
-
-        void testMe() {
-            cout << "OMG I DID SOMETHING IN C++" << endl;
-            cout << thischecker << endl;
-        }
 
         void populateClassHierarchy() { // create class hierarchy
             // create obj node?
@@ -87,15 +82,20 @@ class StaticSemantics {
             TypeNode boolean("Boolean");
             hierarchy["Boolean"] = boolean;
             // traverse the tree
-
-
+            AST::Program *root = (AST::Program*) astroot;
+            AST::Classes classesnode = root->classes_;
+            vector<AST::Class *> classes = classesnode.elements_;
+            for (AST::Class *el: classes) {
+                cout << el->name_.text_ << endl;
+            }
             // upon encountering new classes, create relevant class node in table
         }
 
         TablePointers* check() { // traverse and check AST, returning struct with pointers to tables
             TablePointers* tablePointers = new TablePointers();
-            tablePointers->ch = this->hierarchy;
-            tablePointers->vt = this->variabletypes;
+            tablePointers->ch = &(this->hierarchy);
+            tablePointers->vt = &(this->variabletypes);
+            return tablePointers;
         }
 };
 
