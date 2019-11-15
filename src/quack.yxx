@@ -146,7 +146,7 @@ class:  CLASS ident '(' formal_args ')' '{' statements methods '}'
           AST::Method* constructor = new AST::Method(*$2, *$4, *(new AST::Return(*$2)), *$7);
           $$ = new AST::Class(*$2, *dummy, *constructor, *$8); }
       | CLASS ident '(' formal_args ')' EXTENDS ident '{' statements methods '}'
-        { $$ = new AST::Class(*$2, *$7, *$9, *$10); }
+        { $$ = new AST::Class(*$2, *$7, *(new AST::Method(*$2, *$4, *(new AST::Return(*$2)), *$9)), *$10); }
       ;
 
 methods: /* empty */ { $$ = new AST::Methods(); }

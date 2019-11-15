@@ -8,18 +8,20 @@
 
 using namespace std;
 
-struct method {
-    string methodname;
-    string returntype;
-};
+class Method {
+    public:
+        string methodname;
+        string returntype;
+        vector<string> formalargtypes;
 
-struct constructor {
-    string constructorname;
-};
-
-struct instancevar {
-    string instancename;
-    string instancetype;
+        Method () {
+            formalargtypes = vector<string>();
+        }
+        
+        Method(string name) {
+            methodname = name;
+            formalargtypes = vector<string>();
+        }
 };
 
 class TypeNode {
@@ -27,21 +29,23 @@ class TypeNode {
         string type;
         string parent;
         vector<string> children;
-        vector<instancevar> instance_vars;
-        vector<method> methods;
-        constructor construct;
+        vector<string> instance_vars;
+        vector<Method> methods;
+        Method construct;
 
         TypeNode() {
             children = vector<string>();
-            instance_vars = vector<instancevar>();
-            methods = vector<method>();
+            instance_vars = vector<string>();
+            methods = vector<Method>();
+            //construct = Method(); <-- needs an arg
         }
 
         TypeNode(string name) {
             type = name;
             children = vector<string>();
-            instance_vars = vector<instancevar>();
-            methods = vector<method>();
+            instance_vars = vector<string>();
+            methods = vector<Method>();
+            construct = Method(name);
         }
 };
 
@@ -95,10 +99,9 @@ class StaticSemantics {
                     // methods
                     vector<AST::Method *> methods = (el->methods_).elements_;
                     for (AST::Method *el: methods) {
-                        method newmethod;
                         AST::Ident* methodname = (AST::Ident*) &(el->name_);
                         AST::Ident* returntype = (AST::Ident*) &(el->returns_);
-                        newmethod.methodname = methodname->text_;
+                        Method newmethod(methodname->text_);
                         newmethod.returntype = returntype->text_;
                         // TODO: we might need more info in our method struct!
                             // formal args? (signature)
