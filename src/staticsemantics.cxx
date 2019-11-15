@@ -109,20 +109,27 @@ class StaticSemantics {
                         // gonna need some formal args just like we need in Method
                     // should a constructor just be represented with a method struct in my TypeNode??
                         // it is basically the same thing
-                    AST::Statements* statements = (AST::Statements*) &(el->constructor_);
-                    vector<AST::Statement *> constructor = statements->elements_;
+                    AST::Block* statements = (AST::Block*) &(el->constructor_);
+                    //vector<AST::Statement *> constructor = statements->elements_;
                     // instancevars (packed in constructor)
                     // constructor construct
                 }
                 else {  // don't already have a node for this
-                    TypeNode newtype(el->name_.text_); // create new node
-                    // populate attributes
+                    TypeNode newtype(classname); // create new node
+                    // populate attributes TODO: this is going to be same as above, split out
                     hierarchy[classname] = newtype; // add to table
                 }
-                // if superclass not yet in table, create node, add subclass to superclass
-                    // default to Obj as parent of superclass?? do this later when we encounter the actual def?
-                // else if it is there already, just update subclass list
-                    //newtype.parent = el->super_.text_;
+                // DEAL WITH SUPERCLASS
+                string superclass = el->super_.text_;
+                if (hierarchy.count(superclass)) { // superclass already in table
+                    hierarchy[superclass].children.push_back(classname); // just update its subclasses
+                }
+                else { // superclass not already in table
+                    // create node
+                    TypeNode superclassnode(superclass);
+                    superclassnode.children.push_back(classname);
+                    hierarchy[superclass] = superclassnode;
+                }
             }
 
         }
