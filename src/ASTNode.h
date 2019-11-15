@@ -141,14 +141,15 @@ namespace AST {
     };
 
     class Method : public ASTNode {
-        ASTNode& name_;
-        Formals& formals_;
-        ASTNode& returns_;
-        Block& statements_;
-    public:
-        explicit Method(ASTNode& name, Formals& formals, ASTNode& returns, Block& statements) :
-          name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
-        void json(std::ostream& out, AST_print_context&ctx) override;
+        public:
+            ASTNode& name_;
+            Formals& formals_;
+            ASTNode& returns_;
+            Block& statements_;
+            
+            explicit Method(ASTNode& name, Formals& formals, ASTNode& returns, Block& statements) :
+            name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
+            void json(std::ostream& out, AST_print_context&ctx) override;
     };
 
     class Methods : public Seq<Method> {

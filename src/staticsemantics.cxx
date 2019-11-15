@@ -86,9 +86,45 @@ class StaticSemantics {
             AST::Classes classesnode = root->classes_;
             vector<AST::Class *> classes = classesnode.elements_;
             for (AST::Class *el: classes) {
-                cout << el->name_.text_ << endl;
+                //cout << el->name_.text_ << endl;
+                string classname = el->name_.text_;
+                if (hierarchy.count(classname)) { // already have a node for this
+                    TypeNode node = hierarchy[classname];
+                    node.parent = el->super_.text_; // update superclass
+                    // children (nothing to do here)
+                    // methods
+                    vector<AST::Method *> methods = (el->methods_).elements_;
+                    for (AST::Method *el: methods) {
+                        method newmethod;
+                        AST::Ident* methodname = (AST::Ident*) &(el->name_);
+                        AST::Ident* returntype = (AST::Ident*) &(el->returns_);
+                        newmethod.methodname = methodname->text_;
+                        newmethod.returntype = returntype->text_;
+                        // TODO: we might need more info in our method struct!
+                            // formal args? (signature)
+                        node.methods.push_back(newmethod);
+                    }
+                    // TODO: wait, what is a constructor again?  an AST::Statements? or an AST::Method??
+                        // how did michal do it?
+                        // gonna need some formal args just like we need in Method
+                    // should a constructor just be represented with a method struct in my TypeNode??
+                        // it is basically the same thing
+                    AST::Statements* statements = (AST::Statements*) &(el->constructor_);
+                    vector<AST::Statement *> constructor = statements->elements_;
+                    // instancevars (packed in constructor)
+                    // constructor construct
+                }
+                else {  // don't already have a node for this
+                    TypeNode newtype(el->name_.text_); // create new node
+                    // populate attributes
+                    hierarchy[classname] = newtype; // add to table
+                }
+                // if superclass not yet in table, create node, add subclass to superclass
+                    // default to Obj as parent of superclass?? do this later when we encounter the actual def?
+                // else if it is there already, just update subclass list
+                    //newtype.parent = el->super_.text_;
             }
-            // upon encountering new classes, create relevant class node in table
+
         }
 
         TablePointers* check() { // traverse and check AST, returning struct with pointers to tables
@@ -97,5 +133,7 @@ class StaticSemantics {
             tablePointers->vt = &(this->variabletypes);
             return tablePointers;
         }
+
+        // TODO: method that prints out the class hierarchy table in a useful way
 };
 
