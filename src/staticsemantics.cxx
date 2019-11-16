@@ -14,6 +14,7 @@ class Method {
         string returntype;
         vector<string> formalargtypes;
         // TODO: a method also needs to know the class-scope instance variables
+
         Method () {
             formalargtypes = vector<string>();
         }
@@ -21,6 +22,16 @@ class Method {
         Method(string name) {
             methodname = name;
             formalargtypes = vector<string>();
+        }
+
+        void print() {
+            cout << '\t' << "method name: " << methodname << endl;
+            cout << '\t' << "return type: " << returntype << endl;
+            cout << '\t' << "formal arg types: ";
+            for (string formalarg: formalargtypes) {
+                cout << formalarg << ", ";
+            }
+            cout << endl << endl;
         }
 };
 
@@ -47,6 +58,25 @@ class TypeNode {
             methods = vector<Method>();
             construct = Method(name);
         }
+
+        void print() {
+            cout << "Type: " << type << endl;
+            cout << "Parent: " << parent << endl;
+            cout << "Children: ";
+            for (string child: children) {
+                cout << child << ", ";
+            }
+            cout << endl << "Instance vars: ";
+            for (string var: instance_vars) {
+                cout << var << ", ";
+            }
+            cout << endl << "Methods: " << endl;
+            for (Method method: methods) {
+                method.print();
+            }
+            cout << "Constructor: " << endl;
+            construct.print();
+        }
 };
 
 struct TablePointers{
@@ -69,6 +99,15 @@ class StaticSemantics {
         }
         // TODO: create destructor?
 
+        void printClassHierarchy() {
+            cout << "=========CLASS HIERARCHY============" << endl;
+            for(map<string,TypeNode>::iterator iter = hierarchy.begin(); iter != hierarchy.end(); ++iter) {
+                TypeNode node = iter->second;
+                node.print();
+                cout << "===================================" << endl;
+            }
+        }
+
         void populateClassHierarchy() { // create class hierarchy
             // create obj node?
             TypeNode obj("Obj");
@@ -80,11 +119,16 @@ class StaticSemantics {
             hierarchy["Obj"] = obj; // insert into class hierarchy map
 
             TypeNode integer("Int");
+            integer.parent = "Obj";
             hierarchy["Int"] = integer;
             TypeNode str("String");
+            str.parent = "Obj";
             hierarchy["String"] = str;
             TypeNode boolean("Boolean");
+            boolean.parent = "Obj";
             hierarchy["Boolean"] = boolean;
+            TypeNode nothing("Nothing");
+            nothing.parent = "Obj";
             // traverse the tree
             AST::Program *root = (AST::Program*) astroot;
             AST::Classes classesnode = root->classes_;
@@ -132,11 +176,14 @@ class StaticSemantics {
                 vector<AST::Statement *> *statements = (vector<AST::Statement *> *) &blocknode->elements_;
                 vector<AST::Statement *> stmts = *statements;
                 for (AST::Statement *stmt: stmts) {
-                    cout << "IN THE LOOP" << endl;
-                    cout << stmt->nodetype << endl;
-                    //string nodetype = stmt->get_node_type();
-                    //cout << nodetype << endl;
-                    // which type of statement do we care about?
+                    //cout << stmt->nodetype << endl;
+                    if (stmt->nodetype == "Assign") { // which types do we care about?
+
+                    }
+                    if (stmt->nodetype == "AssignDeclare") {
+
+                    }
+
                     // push found instance vars onto node.instance_vars (vector of strings)
                 }
 
@@ -153,9 +200,11 @@ class StaticSemantics {
                     superclassnode.children.push_back(classname);
                     hierarchy[superclass] = superclassnode;
                 }
-            }
+            } // end for class in classes
 
-        }
+            printClassHierarchy();
+
+        } // end populateClassHierarchy
 
         TablePointers* check() { // traverse and check AST, returning struct with pointers to tables
             TablePointers* tablePointers = new TablePointers();
