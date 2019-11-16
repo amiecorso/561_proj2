@@ -127,12 +127,12 @@ namespace AST {
      * identifier: type pairs.
      */
     class Formal : public ASTNode {
-        ASTNode& var_;
-        ASTNode& type_;
-    public:
-        explicit Formal(ASTNode& var, ASTNode& type_) :
-            var_{var}, type_{type_} {};
-        void json(std::ostream& out, AST_print_context&ctx) override;
+        public:
+            ASTNode& var_;
+            ASTNode& type_;
+            explicit Formal(ASTNode& var, ASTNode& type_) :
+                var_{var}, type_{type_} {};
+            void json(std::ostream& out, AST_print_context&ctx) override;
     };
 
     class Formals : public Seq<Formal> {
@@ -169,13 +169,17 @@ namespace AST {
      * puts it there.
      */
 
-    class Statement : public ASTNode { };
+    class Statement : public ASTNode { 
+        public:
+            static std::string nodetype;
+    };
 
     class Assign : public Statement {
     protected:  // But inherited by AssignDeclare
         ASTNode &lexpr_;
         ASTNode &rexpr_;
     public:
+        static std::string nodetype;
         explicit Assign(ASTNode &lexpr, ASTNode &rexpr) :
            lexpr_{lexpr}, rexpr_{rexpr} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -184,6 +188,7 @@ namespace AST {
     class AssignDeclare : public Assign {
         Ident &static_type_;
     public:
+        static std::string nodetype;
         explicit AssignDeclare(ASTNode &lexpr, ASTNode &rexpr, Ident &static_type) :
             Assign(lexpr, rexpr), static_type_{static_type} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -193,7 +198,10 @@ namespace AST {
     /* A statement could be just an expression ... but
      * we might want to interpose a node here.
      */
-    class Expr : public Statement { };
+    class Expr : public Statement { 
+        public:
+            static std::string nodetype;
+    };
 
     /* When an expression is an LExpr, we
      * the LExpr denotes a location, and we
@@ -202,6 +210,7 @@ namespace AST {
     class Load : public Expr {
         LExpr &loc_;
     public:
+        static std::string nodetype;
         Load(LExpr &loc) : loc_{loc} {}
         void json(std::ostream &out, AST_print_context &ctx) override;
     };
@@ -212,6 +221,7 @@ namespace AST {
     class Return : public Statement {
         ASTNode &expr_;
     public:
+        static std::string nodetype;
         explicit Return(ASTNode& expr) : expr_{expr}  {}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
@@ -221,6 +231,7 @@ namespace AST {
         Seq<ASTNode> &truepart_; // Execute this block if the condition is true
         Seq<ASTNode> &falsepart_; // Execute this block if the condition is false
     public:
+        static std::string nodetype;
         explicit If(ASTNode& cond, Seq<ASTNode>& truepart, Seq<ASTNode>& falsepart) :
             cond_{cond}, truepart_{truepart}, falsepart_{falsepart} { };
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -230,6 +241,7 @@ namespace AST {
         ASTNode& cond_;  // Loop while this condition is true
         Seq<ASTNode>&  body_;     // Loop body
     public:
+        static std::string nodetype;
         explicit While(ASTNode& cond, Block& body) :
             cond_{cond}, body_{body} { };
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -268,6 +280,7 @@ namespace AST {
     class IntConst : public Expr {
         int value_;
     public:
+        static std::string nodetype;
         explicit IntConst(int v) : value_{v} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
@@ -291,6 +304,7 @@ namespace AST {
         Expr& expr_; // An expression we want to downcast to a more specific class
         Type_Alternatives& cases_;    // A case for each potential type
     public:
+        static std::string nodetype;
         explicit Typecase(Expr& expr, Type_Alternatives& cases) :
                 expr_{expr}, cases_{cases} {};
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -300,6 +314,7 @@ namespace AST {
     class StrConst : public Expr {
         std::string value_;
     public:
+        static std::string nodetype;
         explicit StrConst(std::string v) : value_{v} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
@@ -318,6 +333,7 @@ namespace AST {
         Ident&  method_;           /* Method name is same as class name */
         Actuals& actuals_;    /* Actual arguments to constructor */
     public:
+        static std::string nodetype;
         explicit Construct(Ident& method, Actuals& actuals) :
                 method_{method}, actuals_{actuals} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -333,6 +349,7 @@ namespace AST {
         Ident& method_;         /* Identifier of the method */
         Actuals& actuals_;     /* List of actual arguments */
     public:
+        static std::string nodetype;
         explicit Call(Expr& receiver, Ident& method, Actuals& actuals) :
                 receiver_{receiver}, method_{method}, actuals_{actuals} {};
         // Convenience factory for the special case of a method
@@ -354,17 +371,20 @@ namespace AST {
         BinOp(std::string sym, ASTNode &l, ASTNode &r) :
                 opsym{sym}, left_{l}, right_{r} {};
     public:
+        static std::string nodetype;
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
    class And : public BinOp {
    public:
+       static std::string nodetype;
        explicit And(ASTNode& left, ASTNode& right) :
           BinOp("And", left, right) {}
    };
 
     class Or : public BinOp {
     public:
+        static std::string nodetype;
         explicit Or(ASTNode& left, ASTNode& right) :
                 BinOp("Or", left, right) {}
     };
@@ -372,6 +392,7 @@ namespace AST {
     class Not : public Expr {
         ASTNode& left_;
     public:
+        static std::string nodetype;
         explicit Not(ASTNode& left ):
             left_{left}  {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -407,7 +428,23 @@ namespace AST {
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
-
+    std::string Statement::nodetype = "Statement";
+    std::string Assign::nodetype = "Assign";
+    std::string AssignDeclare::nodetype = "Assign";
+    std::string Expr::nodetype = "Expr";
+    std::string Load::nodetype = "Load";
+    std::string IntConst::nodetype = "IntConst";
+    std::string StrConst::nodetype = "StrConst";
+    std::string Construct::nodetype = "Construct";
+    std::string Call::nodetype = "Call";
+    std::string BinOp::nodetype = "BinOp";
+    std::string And::nodetype = "And";
+    std::string Or::nodetype = "Or";
+    std::string Not::nodetype = "Not";
+    std::string Return::nodetype = "Return";
+    std::string If::nodetype = "If";
+    std::string While::nodetype = "While";
+    std::string Typecase::nodetype = "Typecase";
 
 }
 #endif //ASTNODE_H

@@ -2,7 +2,7 @@
 #include "Messages.h"
 
 #include <iostream>
-#include <unistd.h>  // getopt is here
+//#include <unistd.h>
 #include <map>
 #include <vector>
 
@@ -13,11 +13,11 @@ class Method {
         string methodname;
         string returntype;
         vector<string> formalargtypes;
-
+        // TODO: a method also needs to know the class-scope instance variables
         Method () {
             formalargtypes = vector<string>();
         }
-        
+
         Method(string name) {
             methodname = name;
             formalargtypes = vector<string>();
@@ -37,7 +37,7 @@ class TypeNode {
             children = vector<string>();
             instance_vars = vector<string>();
             methods = vector<Method>();
-            //construct = Method(); <-- needs an arg
+            construct = Method();
         }
 
         TypeNode(string name) {
@@ -92,43 +92,63 @@ class StaticSemantics {
             for (AST::Class *el: classes) {
                 //cout << el->name_.text_ << endl;
                 string classname = el->name_.text_;
-                if (hierarchy.count(classname)) { // already have a node for this
-                    TypeNode node = hierarchy[classname];
-                    node.parent = el->super_.text_; // update superclass
-                    // children (nothing to do here)
-                    // methods
-                    vector<AST::Method *> methods = (el->methods_).elements_;
-                    for (AST::Method *el: methods) {
-                        AST::Ident* methodname = (AST::Ident*) &(el->name_);
-                        AST::Ident* returntype = (AST::Ident*) &(el->returns_);
-                        Method newmethod(methodname->text_);
-                        newmethod.returntype = returntype->text_;
-                        // TODO: we might need more info in our method struct!
-                            // formal args? (signature)
-                        node.methods.push_back(newmethod);
+                TypeNode node;
+                if (hierarchy.count(classname)) { // if already in table
+                    node = hierarchy[classname]; // just fetch that node
+                }
+                else {
+                    node = TypeNode(classname); // otherwise create new node
+                }
+                node.parent = el->super_.text_; // update superclass
+                // children (nothing to do here)
+                // methods
+                vector<AST::Method *> methods = (el->methods_).elements_;
+                for (AST::Method *meth: methods) {
+                    AST::Ident* methodname = (AST::Ident*) &(meth->name_);
+                    AST::Ident* returntype = (AST::Ident*) &(meth->returns_);
+                    Method newmethod(methodname->text_);
+                    newmethod.returntype = returntype->text_;
+                    AST::Formals* formalsnode = (AST::Formals*) &(meth->formals_);
+                    vector<AST::Formal *> formals = formalsnode->elements_;
+                    for (AST::Formal *formal: formals) {
+                        AST::Ident *type = (AST::Ident *) &(formal->type_);
+                        newmethod.formalargtypes.push_back(type->text_);
                     }
-                    // TODO: wait, what is a constructor again?  an AST::Statements? or an AST::Method??
-                        // how did michal do it?
-                        // gonna need some formal args just like we need in Method
-                    // should a constructor just be represented with a method struct in my TypeNode??
-                        // it is basically the same thing
-                    AST::Block* statements = (AST::Block*) &(el->constructor_);
-                    //vector<AST::Statement *> constructor = statements->elements_;
-                    // instancevars (packed in constructor)
-                    // constructor construct
+                    node.methods.push_back(newmethod);
                 }
-                else {  // don't already have a node for this
-                    TypeNode newtype(classname); // create new node
-                    // populate attributes TODO: this is going to be same as above, split out
-                    hierarchy[classname] = newtype; // add to table
+                // constructor (node.construct already exists and is a Method object with name initialized)
+                AST::Method *constructor = (AST::Method *) &(el->constructor_);
+                AST::Ident *returnt = (AST::Ident*) &(constructor->returns_);
+                node.construct.returntype = returnt->text_; // fill out returntype
+                AST::Formals* formalsnode = (AST::Formals*) &(constructor->formals_);
+                vector<AST::Formal *> formals = formalsnode->elements_;
+                for (AST::Formal *formal: formals) {
+                        AST::Ident *type = (AST::Ident *) &(formal->type_);
+                        node.construct.formalargtypes.push_back(type->text_); // populate formal arg types
+                    }
+
+                // instancevars (can be found in the statements_ attribute (AST::Block node) of the constructor AST::Method node)
+                AST::Block* blocknode = (AST::Block*) &(constructor->statements_);
+                vector<AST::Statement *> *statements = (vector<AST::Statement *> *) &blocknode->elements_;
+                vector<AST::Statement *> stmts = *statements;
+                for (AST::Statement *stmt: stmts) {
+                    cout << "IN THE LOOP" << endl;
+                    cout << stmt->nodetype << endl;
+                    //string nodetype = stmt->get_node_type();
+                    //cout << nodetype << endl;
+                    // which type of statement do we care about?
+                    // push found instance vars onto node.instance_vars (vector of strings)
                 }
+
+                hierarchy[classname] = node; // finally, add node to table
+
                 // DEAL WITH SUPERCLASS
                 string superclass = el->super_.text_;
                 if (hierarchy.count(superclass)) { // superclass already in table
                     hierarchy[superclass].children.push_back(classname); // just update its subclasses
                 }
                 else { // superclass not already in table
-                    // create node
+                    // create node and put in table
                     TypeNode superclassnode(superclass);
                     superclassnode.children.push_back(classname);
                     hierarchy[superclass] = superclassnode;
