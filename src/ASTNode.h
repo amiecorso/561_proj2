@@ -8,6 +8,9 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <iostream>
+#include <typeinfo>
+#include <map>
 
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
@@ -24,6 +27,9 @@ namespace AST {
 
     class ASTNode {
     public:
+        virtual void collect_vars(std::vector<std::string>* list) =0;//{std::cout << "UNIMPLEMENTED COLLECT_VARS" << std::endl;};
+        virtual std::string get_var() =0;//{std::cout << "UNIMPLEMENTED GET_VAR" << std::endl; return "";};
+        virtual std::string get_type() =0;
         virtual void json(std::ostream& out, AST_print_context& ctx) = 0;  // Json string representation
         std::string str() {
             std::stringstream ss;
@@ -64,9 +70,13 @@ namespace AST {
 
         Seq(std::string kind) : kind_{kind}, elements_{std::vector<Kind *>()} {}
 
+        std::string get_var() override {return "";}
+        void collect_vars(std::vector<std::string>* list) override {return;}
+
+
         void append(Kind *el) { elements_.push_back(el); }
 
-        void json(std::ostream &out, AST_print_context &ctx) {
+        void json(std::ostream &out, AST_print_context &ctx) override {
             json_head(kind_, out, ctx);
             out << "\"elements_\" : [";
             auto sep = "";
@@ -106,7 +116,8 @@ namespace AST {
     class Ident : public LExpr {
         public:
             std::string text_;
-
+            std::string get_var() override {return text_;}
+            void collect_vars(std::vector<std::string>* list) override {return;}
             explicit Ident(std::string txt) : text_{txt} {}
             void json(std::ostream& out, AST_print_context& ctx) override;
     };
@@ -132,6 +143,8 @@ namespace AST {
             ASTNode& type_;
             explicit Formal(ASTNode& var, ASTNode& type_) :
                 var_{var}, type_{type_} {};
+            std::string get_var() override {return "";}
+            void collect_vars(std::vector<std::string>* list) override {return;}
             void json(std::ostream& out, AST_print_context&ctx) override;
     };
 
@@ -149,6 +162,9 @@ namespace AST {
             
             explicit Method(ASTNode& name, Formals& formals, ASTNode& returns, Block& statements) :
             name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
+
+            std::string get_var() override {return "";}
+            void collect_vars(std::vector<std::string>* list) override {return;}
             void json(std::ostream& out, AST_print_context&ctx) override;
     };
 
@@ -171,7 +187,8 @@ namespace AST {
 
     class Statement : public ASTNode { 
         public:
-            static std::string nodetype;
+            std::string get_var() override {return "";}
+            void collect_vars(std::vector<std::string>* list) override {return;}
     };
 
     class Assign : public Statement {
@@ -179,7 +196,11 @@ namespace AST {
         ASTNode &lexpr_;
         ASTNode &rexpr_;
     public:
-        static std::string nodetype;
+        void collect_vars(std::vector<std::string>* list) override {
+            std::string var_name = lexpr_.get_var();
+            list->push_back(var_name);
+        }
+
         explicit Assign(ASTNode &lexpr, ASTNode &rexpr) :
            lexpr_{lexpr}, rexpr_{rexpr} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -188,7 +209,6 @@ namespace AST {
     class AssignDeclare : public Assign {
         Ident &static_type_;
     public:
-        static std::string nodetype;
         explicit AssignDeclare(ASTNode &lexpr, ASTNode &rexpr, Ident &static_type) :
             Assign(lexpr, rexpr), static_type_{static_type} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -200,7 +220,6 @@ namespace AST {
      */
     class Expr : public Statement { 
         public:
-            static std::string nodetype;
     };
 
     /* When an expression is an LExpr, we
@@ -210,8 +229,9 @@ namespace AST {
     class Load : public Expr {
         LExpr &loc_;
     public:
-        static std::string nodetype;
         Load(LExpr &loc) : loc_{loc} {}
+        std::string get_var() override {return loc_.get_var();}
+        void collect_vars(std::vector<std::string>* list) override {return;}
         void json(std::ostream &out, AST_print_context &ctx) override;
     };
 
@@ -221,7 +241,6 @@ namespace AST {
     class Return : public Statement {
         ASTNode &expr_;
     public:
-        static std::string nodetype;
         explicit Return(ASTNode& expr) : expr_{expr}  {}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
@@ -231,7 +250,6 @@ namespace AST {
         Seq<ASTNode> &truepart_; // Execute this block if the condition is true
         Seq<ASTNode> &falsepart_; // Execute this block if the condition is false
     public:
-        static std::string nodetype;
         explicit If(ASTNode& cond, Seq<ASTNode>& truepart, Seq<ASTNode>& falsepart) :
             cond_{cond}, truepart_{truepart}, falsepart_{falsepart} { };
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -241,7 +259,6 @@ namespace AST {
         ASTNode& cond_;  // Loop while this condition is true
         Seq<ASTNode>&  body_;     // Loop body
     public:
-        static std::string nodetype;
         explicit While(ASTNode& cond, Block& body) :
             cond_{cond}, body_{body} { };
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -266,6 +283,8 @@ namespace AST {
                     ASTNode& constructor, Methods& methods) :
                 name_{name},  super_{super},
                 constructor_{constructor}, methods_{methods} {};
+            std::string get_var() override {return "";}
+            void collect_vars(std::vector<std::string>* list) override {return;}
             void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
@@ -280,7 +299,6 @@ namespace AST {
     class IntConst : public Expr {
         int value_;
     public:
-        static std::string nodetype;
         explicit IntConst(int v) : value_{v} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
@@ -292,6 +310,8 @@ namespace AST {
     public:
         explicit Type_Alternative(Ident& ident, Ident& classname, Block& block) :
                 ident_{ident}, classname_{classname}, block_{block} {}
+        std::string get_var() override {return "";}
+        void collect_vars(std::vector<std::string>* list) override {return;}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
@@ -304,7 +324,6 @@ namespace AST {
         Expr& expr_; // An expression we want to downcast to a more specific class
         Type_Alternatives& cases_;    // A case for each potential type
     public:
-        static std::string nodetype;
         explicit Typecase(Expr& expr, Type_Alternatives& cases) :
                 expr_{expr}, cases_{cases} {};
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -314,7 +333,6 @@ namespace AST {
     class StrConst : public Expr {
         std::string value_;
     public:
-        static std::string nodetype;
         explicit StrConst(std::string v) : value_{v} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
@@ -333,7 +351,6 @@ namespace AST {
         Ident&  method_;           /* Method name is same as class name */
         Actuals& actuals_;    /* Actual arguments to constructor */
     public:
-        static std::string nodetype;
         explicit Construct(Ident& method, Actuals& actuals) :
                 method_{method}, actuals_{actuals} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -349,7 +366,6 @@ namespace AST {
         Ident& method_;         /* Identifier of the method */
         Actuals& actuals_;     /* List of actual arguments */
     public:
-        static std::string nodetype;
         explicit Call(Expr& receiver, Ident& method, Actuals& actuals) :
                 receiver_{receiver}, method_{method}, actuals_{actuals} {};
         // Convenience factory for the special case of a method
@@ -371,20 +387,17 @@ namespace AST {
         BinOp(std::string sym, ASTNode &l, ASTNode &r) :
                 opsym{sym}, left_{l}, right_{r} {};
     public:
-        static std::string nodetype;
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
    class And : public BinOp {
    public:
-       static std::string nodetype;
        explicit And(ASTNode& left, ASTNode& right) :
           BinOp("And", left, right) {}
    };
 
     class Or : public BinOp {
     public:
-        static std::string nodetype;
         explicit Or(ASTNode& left, ASTNode& right) :
                 BinOp("Or", left, right) {}
     };
@@ -392,7 +405,6 @@ namespace AST {
     class Not : public Expr {
         ASTNode& left_;
     public:
-        static std::string nodetype;
         explicit Not(ASTNode& left ):
             left_{left}  {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -410,6 +422,8 @@ namespace AST {
         Expr& left_;
         Ident& right_;
     public:
+        std::string get_var() override {return left_.get_var() + "." + right_.get_var();}
+        void collect_vars(std::vector<std::string>* list) override { return; }
         explicit Dot (Expr& left, Ident& right) :
            left_{left},  right_{right} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -425,26 +439,10 @@ namespace AST {
         Block& statements_;
         explicit Program(Classes& classes, Block& statements) :
                 classes_{classes}, statements_{statements} {}
+        std::string get_var() override {return "";}
+        void collect_vars(std::vector<std::string>* list) override {return;}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
-
-    std::string Statement::nodetype = "Statement";
-    std::string Assign::nodetype = "Assign";
-    std::string AssignDeclare::nodetype = "Assign";
-    std::string Expr::nodetype = "Expr";
-    std::string Load::nodetype = "Load";
-    std::string IntConst::nodetype = "IntConst";
-    std::string StrConst::nodetype = "StrConst";
-    std::string Construct::nodetype = "Construct";
-    std::string Call::nodetype = "Call";
-    std::string BinOp::nodetype = "BinOp";
-    std::string And::nodetype = "And";
-    std::string Or::nodetype = "Or";
-    std::string Not::nodetype = "Not";
-    std::string Return::nodetype = "Return";
-    std::string If::nodetype = "If";
-    std::string While::nodetype = "While";
-    std::string Typecase::nodetype = "Typecase";
 
 }
 #endif //ASTNODE_H

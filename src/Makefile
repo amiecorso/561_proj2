@@ -38,13 +38,13 @@ lex.yy.cxx lex.yy.h:  quack.lxx
 quack.tab.cxx quack.tab.hxx location.hh position.hh stack.hh: quack.yxx
 	$(BISON) --defines --debug --token-table --report=all $<
 
-%.o: %.cxx
+%.o: %.cxx ASTNode.h
 	$(CC) -c $^
 
 scanner: scanner.o lex.yy.o
 	$(CC) -o scanner $^
 
-parser.o: quack.tab.hxx lex.yy.h staticsemantics.cxx ASTNode.h
+parser.o: quack.tab.hxx lex.yy.h staticsemantics.cxx
 
 $(BIN)/parser: parser.o quack.tab.o lex.yy.o ASTNode.o Messages.o
 	$(CC) $^ -o $(BIN)/parser -L /usr/local/lib  -lreflex
