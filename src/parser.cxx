@@ -6,7 +6,7 @@
 #include "lex.yy.h"
 #include "ASTNode.h"
 #include "Messages.h"
-#include "staticsemantics.cxx"
+#include "staticsemantics.h"
 
 #include <iostream>
 #include <unistd.h>  // getopt is here
@@ -73,23 +73,6 @@ int main(int argc, char **argv) {
             // return (or null pointer if error)
             StaticSemantics semanticChecker(root);
             semanticChecker.populateClassHierarchy();
-
-            /*
-            A* A_ptr = new A();
-            B* B_ptr = new B();
-            A* B_AS_A_ptr = new B();
-            cout << A_ptr->name << endl;
-            cout << B_ptr->name << endl;
-            cout << B_AS_A_ptr->name << endl;
-
-            A myA = A();
-            B myB = B();
-            A B_as_A = B();
-            cout << myA.name << endl;
-            cout << myB.name << endl;
-            cout << B_as_A.name << endl;
-            */
-
 
         } else {
             std::cout << "No tree produced." << std::endl;

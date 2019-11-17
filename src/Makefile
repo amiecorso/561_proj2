@@ -44,7 +44,7 @@ quack.tab.cxx quack.tab.hxx location.hh position.hh stack.hh: quack.yxx
 scanner: scanner.o lex.yy.o
 	$(CC) -o scanner $^
 
-parser.o: quack.tab.hxx lex.yy.h staticsemantics.cxx
+parser.o: quack.tab.hxx lex.yy.h staticsemantics.h
 
 $(BIN)/parser: parser.o quack.tab.o lex.yy.o ASTNode.o Messages.o
 	$(CC) $^ -o $(BIN)/parser -L /usr/local/lib  -lreflex
