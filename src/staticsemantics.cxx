@@ -175,17 +175,33 @@ class StaticSemantics {
                 AST::Block* blocknode = (AST::Block*) &(constructor->statements_);
                 vector<AST::Statement *> *statements = (vector<AST::Statement *> *) &blocknode->elements_;
                 vector<AST::Statement *> stmts = *statements;
-                for (AST::Statement *stmt: stmts) {
-                    //cout << stmt->nodetype << endl;
-                    if (stmt->nodetype == "Assign") { // which types do we care about?
 
+                //for (AST::Statement *stmt: stmts) {
+                    //cout << stmt->get_nodetype() << endl;
+                    //cout << stmt->normaltest() << endl;
+                    //stmt->normaltest();
+                    //cout << "WHAT" << endl;
+                    /*
+                    if (stmt->nodetype == "Assign") { // which types do we care about?
+                        cout << "GOT ASSIGN" << endl;
+                        AST::Assign* assign = (AST::Assign*) stmt;
+                        if (assign->lexpr_.nodetype == "Ident") {
+                            AST::Ident *identp = (AST::Ident*) &assign->lexpr_;
+                            node.instance_vars.push_back(identp->text_);
+                        }
+                        if (assign->lexpr_.nodetype == "Dot") {
+                            AST::Dot *dotp = (AST::Dot*) &assign->lexpr_;
+                            AST::Ident *right = (AST::Ident*) &dotp->right_;
+                            node.instance_vars.push_back(right->text_);
+                        }
                     }
                     if (stmt->nodetype == "AssignDeclare") {
 
                     }
+                    */
 
                     // push found instance vars onto node.instance_vars (vector of strings)
-                }
+                //}
 
                 hierarchy[classname] = node; // finally, add node to table
 
