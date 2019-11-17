@@ -27,9 +27,12 @@ namespace AST {
 
     class ASTNode {
     public:
-        virtual void collect_vars(std::vector<std::string>* list) =0;//{std::cout << "UNIMPLEMENTED COLLECT_VARS" << std::endl;};
-        virtual std::string get_var() =0;//{std::cout << "UNIMPLEMENTED GET_VAR" << std::endl; return "";};
-        virtual std::string get_type() =0;
+        virtual void collect_vars(std::vector<std::string>* list) {std::cout << "UNIMPLEMENTED COLLECT_VARS" << std::endl;};
+        virtual std::string get_var() {std::cout << "UNIMPLEMENTED GET_VAR" << std::endl; return "";};
+        virtual std::string get_type(std::map<std::string, std::string>* vt) {
+            std::cout << "UNIMPLEMENTED GET_TYPE" << std::endl;
+            return "";
+        };
         virtual void json(std::ostream& out, AST_print_context& ctx) = 0;  // Json string representation
         std::string str() {
             std::stringstream ss;

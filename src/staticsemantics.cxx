@@ -41,13 +41,13 @@ class TypeNode {
         string parent;
         vector<string> children;
         vector<string> instance_vars;
-        vector<Method> methods;
+        map<string, Method> methods;
         Method construct;
 
         TypeNode() {
             children = vector<string>();
             instance_vars = vector<string>();
-            methods = vector<Method>();
+            methods = map<string, Method>();
             construct = Method();
         }
 
@@ -55,7 +55,7 @@ class TypeNode {
             type = name;
             children = vector<string>();
             instance_vars = vector<string>();
-            methods = vector<Method>();
+            methods = map<string, Method>();
             construct = Method(name);
         }
 
@@ -71,7 +71,8 @@ class TypeNode {
                 cout << var << ", ";
             }
             cout << endl << "Methods: " << endl;
-            for (Method method: methods) {
+            for(std::map<string, Method>::iterator iter = methods.begin(); iter != methods.end(); ++iter) {
+                Method method =  iter->second;
                 method.print();
             }
             cout << "Constructor: " << endl;
@@ -158,7 +159,7 @@ class StaticSemantics {
                         AST::Ident *type = (AST::Ident *) &(formal->type_);
                         newmethod.formalargtypes.push_back(type->text_);
                     }
-                    node.methods.push_back(newmethod);
+                    node.methods[newmethod.methodname] = newmethod;
                 }
                 // constructor (node.construct already exists and is a Method object with name initialized)
                 AST::Method *constructor = (AST::Method *) &(el->constructor_);
@@ -176,16 +177,13 @@ class StaticSemantics {
                 vector<AST::Statement *> *statements = (vector<AST::Statement *> *) &blocknode->elements_;
                 vector<AST::Statement *> stmts = *statements;
 
-                //vector<string> variables = vector<string>();
                 for (AST::Statement *stmt: stmts) {
-                    //cout << stmt->get_nodetype() << endl;
-                    //cout << "LOOP!" << endl;
                     stmt->collect_vars(&node.instance_vars);
                 }
 
                 hierarchy[classname] = node; // finally, add node to table
 
-                // DEAL WITH SUPERCLASS
+                // DEAL WITH SUPERCLASS (DON'T ACTUALLY NEED TO KNOW CHILDREN!!)
                 string superclass = el->super_.text_;
                 if (hierarchy.count(superclass)) { // superclass already in table
                     hierarchy[superclass].children.push_back(classname); // just update its subclasses
@@ -208,7 +206,5 @@ class StaticSemantics {
             tablePointers->vt = &(this->variabletypes);
             return tablePointers;
         }
-
-        // TODO: method that prints out the class hierarchy table in a useful way
 };
 
