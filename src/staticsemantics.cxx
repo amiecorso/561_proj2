@@ -13,15 +13,19 @@ class Method {
         string methodname;
         string returntype;
         vector<string> formalargtypes;
+        map<string, string> vars;
         // TODO: a method also needs to know the class-scope instance variables
+            // do we put these in vars, or keep a separate table?  maybe put in vars??
 
         Method () {
             formalargtypes = vector<string>();
+            vars = map<string, string>();
         }
 
         Method(string name) {
             methodname = name;
             formalargtypes = vector<string>();
+            vars = map<string, string>();
         }
 
         void print() {
@@ -31,7 +35,12 @@ class Method {
             for (string formalarg: formalargtypes) {
                 cout << formalarg << ", ";
             }
-            cout << endl << endl;
+            cout << endl;
+            cout << "\t" << "variables: " << endl;
+            for(std::map<string, string>::iterator iter = vars.begin(); iter != vars.end(); ++iter) {
+                cout << "\t\t" << iter->first << ":" << iter->second << endl;
+            }
+            cout << endl;
         }
 };
 
@@ -39,22 +48,19 @@ class TypeNode {
     public:
         string type;
         string parent;
-        vector<string> children;
-        vector<string> instance_vars;
+        map<string, string> instance_vars;
         map<string, Method> methods;
         Method construct;
 
         TypeNode() {
-            children = vector<string>();
-            instance_vars = vector<string>();
+            instance_vars = map<string, string>();
             methods = map<string, Method>();
             construct = Method();
         }
 
         TypeNode(string name) {
             type = name;
-            children = vector<string>();
-            instance_vars = vector<string>();
+            instance_vars = map<string, string>();
             methods = map<string, Method>();
             construct = Method(name);
         }
@@ -62,15 +68,11 @@ class TypeNode {
         void print() {
             cout << "Type: " << type << endl;
             cout << "Parent: " << parent << endl;
-            cout << "Children: ";
-            for (string child: children) {
-                cout << child << ", ";
+            cout << "Instance vars: " << endl;;
+            for(std::map<string, string>::iterator iter = instance_vars.begin(); iter != instance_vars.end(); ++iter) {
+                cout << "\t" << iter->first << ":" << iter->second << endl;
             }
-            cout << endl << "Instance vars: ";
-            for (string var: instance_vars) {
-                cout << var << ", ";
-            }
-            cout << endl << "Methods: " << endl;
+            cout << "Methods: " << endl;
             for(std::map<string, Method>::iterator iter = methods.begin(); iter != methods.end(); ++iter) {
                 Method method =  iter->second;
                 method.print();
@@ -80,23 +82,16 @@ class TypeNode {
         }
 };
 
-struct TablePointers{
-    map<string, TypeNode>* ch;
-    map<string, string>* vt;
-};
-
 class StaticSemantics {
     AST::ASTNode* astroot;
     int found_error;
     map<string, TypeNode> hierarchy;
-    map<string, string> variabletypes;
 
     public:
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
             astroot = root;
             found_error = 0;
             hierarchy = map<string, TypeNode>();
-            variabletypes = map<string, string>();
         }
         // TODO: create destructor?
 
@@ -110,15 +105,10 @@ class StaticSemantics {
         }
 
         void populateClassHierarchy() { // create class hierarchy
-            // create obj node?
+            // Populate built-ins
             TypeNode obj("Obj");
             obj.parent = "TYPE_ERROR";
-            obj.children.push_back("Int");
-            obj.children.push_back("String");
-            obj.children.push_back("Boolean");
-            obj.children.push_back("Nothing");
-            hierarchy["Obj"] = obj; // insert into class hierarchy map
-
+            hierarchy["Obj"] = obj;
             TypeNode integer("Int");
             integer.parent = "Obj";
             hierarchy["Int"] = integer;
@@ -130,12 +120,12 @@ class StaticSemantics {
             hierarchy["Boolean"] = boolean;
             TypeNode nothing("Nothing");
             nothing.parent = "Obj";
-            // traverse the tree
+
+            // Traverse the classes
             AST::Program *root = (AST::Program*) astroot;
             AST::Classes classesnode = root->classes_;
             vector<AST::Class *> classes = classesnode.elements_;
             for (AST::Class *el: classes) {
-                //cout << el->name_.text_ << endl;
                 string classname = el->name_.text_;
                 TypeNode node;
                 if (hierarchy.count(classname)) { // if already in table
@@ -145,7 +135,6 @@ class StaticSemantics {
                     node = TypeNode(classname); // otherwise create new node
                 }
                 node.parent = el->super_.text_; // update superclass
-                // children (nothing to do here)
                 // methods
                 vector<AST::Method *> methods = (el->methods_).elements_;
                 for (AST::Method *meth: methods) {
@@ -182,29 +171,11 @@ class StaticSemantics {
                 }
 
                 hierarchy[classname] = node; // finally, add node to table
-
-                // DEAL WITH SUPERCLASS (DON'T ACTUALLY NEED TO KNOW CHILDREN!!)
-                string superclass = el->super_.text_;
-                if (hierarchy.count(superclass)) { // superclass already in table
-                    hierarchy[superclass].children.push_back(classname); // just update its subclasses
-                }
-                else { // superclass not already in table
-                    // create node and put in table
-                    TypeNode superclassnode(superclass);
-                    superclassnode.children.push_back(classname);
-                    hierarchy[superclass] = superclassnode;
-                }
             } // end for class in classes
 
             printClassHierarchy();
 
         } // end populateClassHierarchy
 
-        TablePointers* check() { // traverse and check AST, returning struct with pointers to tables
-            TablePointers* tablePointers = new TablePointers();
-            tablePointers->ch = &(this->hierarchy);
-            tablePointers->vt = &(this->variabletypes);
-            return tablePointers;
-        }
 };
 

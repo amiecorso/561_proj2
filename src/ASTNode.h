@@ -27,7 +27,7 @@ namespace AST {
 
     class ASTNode {
     public:
-        virtual void collect_vars(std::vector<std::string>* list) {std::cout << "UNIMPLEMENTED COLLECT_VARS" << std::endl;};
+        virtual void collect_vars(std::map<std::string, std::string>* vt) {std::cout << "UNIMPLEMENTED COLLECT_VARS" << std::endl;};
         virtual std::string get_var() {std::cout << "UNIMPLEMENTED GET_VAR" << std::endl; return "";};
         virtual std::string get_type(std::map<std::string, std::string>* vt) {
             std::cout << "UNIMPLEMENTED GET_TYPE" << std::endl;
@@ -74,7 +74,7 @@ namespace AST {
         Seq(std::string kind) : kind_{kind}, elements_{std::vector<Kind *>()} {}
 
         std::string get_var() override {return "";}
-        void collect_vars(std::vector<std::string>* list) override {return;}
+        void collect_vars(std::map<std::string, std::string>* vt) override {return;}
 
 
         void append(Kind *el) { elements_.push_back(el); }
@@ -120,7 +120,7 @@ namespace AST {
         public:
             std::string text_;
             std::string get_var() override {return text_;}
-            void collect_vars(std::vector<std::string>* list) override {return;}
+            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
             explicit Ident(std::string txt) : text_{txt} {}
             void json(std::ostream& out, AST_print_context& ctx) override;
     };
@@ -147,7 +147,7 @@ namespace AST {
             explicit Formal(ASTNode& var, ASTNode& type_) :
                 var_{var}, type_{type_} {};
             std::string get_var() override {return "";}
-            void collect_vars(std::vector<std::string>* list) override {return;}
+            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
             void json(std::ostream& out, AST_print_context&ctx) override;
     };
 
@@ -167,7 +167,7 @@ namespace AST {
             name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
 
             std::string get_var() override {return "";}
-            void collect_vars(std::vector<std::string>* list) override {return;}
+            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
             void json(std::ostream& out, AST_print_context&ctx) override;
     };
 
@@ -191,7 +191,7 @@ namespace AST {
     class Statement : public ASTNode { 
         public:
             std::string get_var() override {return "";}
-            void collect_vars(std::vector<std::string>* list) override {return;}
+            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
     };
 
     class Assign : public Statement {
@@ -199,9 +199,9 @@ namespace AST {
         ASTNode &lexpr_;
         ASTNode &rexpr_;
     public:
-        void collect_vars(std::vector<std::string>* list) override {
+        void collect_vars(std::map<std::string, std::string>* vt) override {
             std::string var_name = lexpr_.get_var();
-            list->push_back(var_name);
+            (*vt)[var_name] = "Bottom";
         }
 
         explicit Assign(ASTNode &lexpr, ASTNode &rexpr) :
@@ -234,7 +234,7 @@ namespace AST {
     public:
         Load(LExpr &loc) : loc_{loc} {}
         std::string get_var() override {return loc_.get_var();}
-        void collect_vars(std::vector<std::string>* list) override {return;}
+        void collect_vars(std::map<std::string, std::string>* vt) override {return;}
         void json(std::ostream &out, AST_print_context &ctx) override;
     };
 
@@ -287,7 +287,7 @@ namespace AST {
                 name_{name},  super_{super},
                 constructor_{constructor}, methods_{methods} {};
             std::string get_var() override {return "";}
-            void collect_vars(std::vector<std::string>* list) override {return;}
+            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
             void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
@@ -314,7 +314,7 @@ namespace AST {
         explicit Type_Alternative(Ident& ident, Ident& classname, Block& block) :
                 ident_{ident}, classname_{classname}, block_{block} {}
         std::string get_var() override {return "";}
-        void collect_vars(std::vector<std::string>* list) override {return;}
+        void collect_vars(std::map<std::string, std::string>* vt) override {return;}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
@@ -426,7 +426,7 @@ namespace AST {
         Ident& right_;
     public:
         std::string get_var() override {return left_.get_var() + "." + right_.get_var();}
-        void collect_vars(std::vector<std::string>* list) override { return; }
+        void collect_vars(std::map<std::string, std::string>* vt) override { return; }
         explicit Dot (Expr& left, Ident& right) :
            left_{left},  right_{right} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -443,7 +443,7 @@ namespace AST {
         explicit Program(Classes& classes, Block& statements) :
                 classes_{classes}, statements_{statements} {}
         std::string get_var() override {return "";}
-        void collect_vars(std::vector<std::string>* list) override {return;}
+        void collect_vars(std::map<std::string, std::string>* vt) override {return;}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
