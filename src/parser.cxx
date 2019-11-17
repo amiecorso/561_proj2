@@ -6,7 +6,7 @@
 #include "lex.yy.h"
 #include "ASTNode.h"
 #include "Messages.h"
-#include "staticsemantics.h"
+#include "staticsemantics.cxx"
 
 #include <iostream>
 #include <unistd.h>  // getopt is here

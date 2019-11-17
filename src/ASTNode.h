@@ -12,7 +12,7 @@
 #include <typeinfo>
 #include <map>
 
-#include "staticsemantics.h"
+class StaticSemantics;
 
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
@@ -35,7 +35,7 @@ namespace AST {
             std::cout << "UNIMPLEMENTED GET_TYPE" << std::endl;
             return "";
         };
-        virtual int type_check(void) {std::cout << "UNIMPLEMENTED TYPE_CHECK" << std::endl; return 0;}
+        virtual int type_check(StaticSemantics* ssc) {std::cout << "UNIMPLEMENTED TYPE_CHECK" << std::endl; return 0;}
         virtual void json(std::ostream& out, AST_print_context& ctx) = 0;  // Json string representation
         std::string str() {
             std::stringstream ss;
