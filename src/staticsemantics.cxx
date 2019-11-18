@@ -208,6 +208,25 @@ class StaticSemantics {
             }
         }
 
+        int is_subtype(string sub, string super) {
+            // return 1 if sub is substype of super, 0 otherwise
+            set<string> sub_path_to_root = set<string>();
+            string type = sub;
+            if (!hierarchy.count(type)) { // subtype not in class hierarchy
+                cout << "ERROR: type " << type << " not in class hierarchy" << endl;
+                return 0;
+            }
+            while (1) {
+                sub_path_to_root.insert(type);
+                if (type == "Obj") { break; }
+                type = hierarchy[type].parent;
+            }
+            if (sub_path_to_root.count(super)) {
+                return 1;
+            }
+            return 0;
+        }
+
         string get_LCA(string type1, string type2) {
             cout << "ENTERING: ssc::get_LCA" << type1 << type2 << flush;
             cout << "type1: ";
@@ -236,12 +255,6 @@ class StaticSemantics {
         }
 
         map<string, TypeNode>* typeCheck() {
-            // Traverse the classes
-            // for each class
-                // type check its constructor (instance_vars / local vars.. two tables?!)
-                // copy instance vars into method tables
-                // for each METHOD:
-                    // type check the method
             AST::Program *root = (AST::Program*) astroot;
             int changed = 1;
             while (changed) {
