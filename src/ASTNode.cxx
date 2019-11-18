@@ -9,6 +9,19 @@ namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
     // Type checking functions defined here to avoid circular #include situation:
+
+    void Assign::type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt)  {
+        std::string lhs_var = lexpr_.get_var();
+        std::string rhs_type = rexpr_.get_type(vt);
+        if (vt->count(lhs_var)) {
+            std::string lhs_type = (*vt)[lhs_var];
+            std::string lca = ssc->get_LCA(lhs_type, rhs_type);
+            (*vt)[lhs_var] = lca;
+        }
+        else {
+            (*vt)[lhs_var] = rhs_type;
+        }
+    }
     void Methods::type_check(StaticSemantics* ssc, map<std::string, std::string>* vt, std::string classname) {
             for (Method* method: elements_) {
                 std::string methodname = method->name_.get_var();

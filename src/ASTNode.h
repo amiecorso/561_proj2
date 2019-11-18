@@ -234,9 +234,7 @@ namespace AST {
             std::string var_name = lexpr_.get_var();
             (*vt)[var_name] = "Bottom";
         }
-        void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
-            // TODO: YOU ARE HERE
-        }
+        void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override;
 
         explicit Assign(ASTNode &lexpr, ASTNode &rexpr) :
            lexpr_{lexpr}, rexpr_{rexpr} {}
