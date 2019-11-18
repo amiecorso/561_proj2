@@ -11,18 +11,25 @@ namespace AST {
     // Type checking functions defined here to avoid circular #include situation:
 
     void Assign::type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt)  {
+        std::cout << "ENTERING: Assign::type_check" << std::endl;
         std::string lhs_var = lexpr_.get_var();
+        std::cout << "\tlhs_var = " << lhs_var << std::endl;
         std::string rhs_type = rexpr_.get_type(vt);
-        if (vt->count(lhs_var)) {
+        std::cout << "\trhs_type = " << rhs_type << std::endl;
+        // if lhs variable has unknown type, just assign the rhs type.  OTHERWISE go into LCA
+        if (vt->count(lhs_var) && !((*vt)[lhs_var] == "Bottom")) {
+            //std::cout << "Assign:type_check: IF-part" << std::endl;
             std::string lhs_type = (*vt)[lhs_var];
             std::string lca = ssc->get_LCA(lhs_type, rhs_type);
             (*vt)[lhs_var] = lca;
         }
         else {
+            //std::cout << "Assign:type_check: ELSE-part" << std::endl;
             (*vt)[lhs_var] = rhs_type;
         }
     }
     void Methods::type_check(StaticSemantics* ssc, map<std::string, std::string>* vt, std::string classname) {
+            std::cout << "ENTERING: Methods::type_check" << std::endl;
             for (Method* method: elements_) {
                 std::string methodname = method->name_.get_var();
                 TypeNode classentry = ssc->hierarchy[classname];
@@ -33,8 +40,11 @@ namespace AST {
     }
 
     void Class::type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) {
-            std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[name_.get_var()].instance_vars);
+            std::cout << "ENTERING CALL TO Class::type_check" << std::endl;
+            std::string classname = name_.get_var();
+            std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[classname].instance_vars);
             constructor_.type_check(ssc, classinstancevars);
+            ssc->copy_instance_vars(classname);
             // How do we know correct table for each method in methods??
             // this version of type_check is going to need the class name... 
             methods_.type_check(ssc, vt, name_.get_var());

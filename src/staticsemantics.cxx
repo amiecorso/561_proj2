@@ -171,15 +171,33 @@ class StaticSemantics {
                 }
 
                 hierarchy[classname] = node; // finally, add node to table
-            } // end for class in classes
 
+            } // end for class in classes
             printClassHierarchy();
 
         } // end populateClassHierarchy
 
         // TODO: make sure class hierarchy is ACYCLIC
 
+        void copy_instance_vars(string classname) { // copy class instance vars into method tables
+            cout << "ENTERING ssc::copy_instance_vars" << endl;
+            TypeNode classtable = hierarchy[classname];
+            map<string, string> instancevars = classtable.instance_vars;
+            map<string, MethodTable> methods = classtable.methods;
+            for(map<string, MethodTable>::iterator miter = methods.begin(); miter != methods.end(); ++miter) {
+                map<string, string> methodvars = (miter->second).vars;
+                for(map<string, string>::iterator viter = instancevars.begin(); viter != instancevars.end(); ++viter) {
+                    methodvars[viter->first] = viter->second;
+                } // end for each instance var
+            } // end for each method
+        }
+
         string get_LCA(string type1, string type2) {
+            cout << "ENTERING: ssc::get_LCA" << type1 << type2 << flush;
+            cout << "type1: ";
+            cout << type1 << endl;
+            cout << "type2: ";
+            cout << type2 << endl;
             set<string> type1_path = set<string>();
             string type = type1;
             while (1) {
@@ -187,6 +205,8 @@ class StaticSemantics {
                 if (type == "Obj") { break; }
                 type = hierarchy[type].parent;
             }
+            cout << "ssc::get_LCA past first while loop" << endl;
+
             type = type2;
             while (1) {
                 if (type1_path.count(type)) {
@@ -211,7 +231,8 @@ class StaticSemantics {
             AST::Classes classesnode = root->classes_;
             vector<AST::Class *> classes = classesnode.elements_;
             for (AST::Class *cls: classes) {
-                cls->constructor_.type_check(this, nullptr);
+                cout << "IN SSC::typeCheck FOR" << endl;
+                cls->type_check(this, nullptr);
             } // end for
 
             return &this->hierarchy;

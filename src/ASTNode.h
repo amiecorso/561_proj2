@@ -127,11 +127,14 @@ namespace AST {
             std::string get_var() override {return text_;}
             void collect_vars(std::map<std::string, std::string>* vt) override {return;}
             std::string get_type(std::map<std::string, std::string>* vt) override {
+                std::cout << "ENTERING: Ident::get_type" << std::endl;
                 if (vt->count(text_)) { // Identifier in table
+                    std::cout << "ENTERING: Ident::get_type, IF-part" << std::endl;
                     return (*vt)[text_];
                 }
                 else { // not in table!!
-                    return "Top"; // error?? 
+                    std::cout << "ENTERING: Ident::get_type, ELSE-part" << std::endl;
+                    return "Bottom"; // error?? 
                 }
             }
             explicit Ident(std::string txt) : text_{txt} {}
@@ -147,7 +150,10 @@ namespace AST {
     public:
         explicit Block() : Seq("Block") {}
         void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
+            std::cout << "ENTERING: Block::type_check" << std::endl;
             for (ASTNode *stmt: elements_) {
+                std::cout << "Block::type_check: for loop" << std::endl;
+                std::cout << "Type of stmt is: " << typeid(*stmt).name() << std::endl;
                 stmt->type_check(ssc, vt);
             }
         }
@@ -165,7 +171,15 @@ namespace AST {
             explicit Formal(ASTNode& var, ASTNode& type_) :
                 var_{var}, type_{type_} {};
             void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
-                (*vt)[var_.get_var()] = type_.get_type(vt);
+                std::cout << "ENTERING Formal:type_check" << std::endl;
+                std::string var = var_.get_var();
+                std::cout << "var is: " << var << std::endl;
+                std::cout << "Type of type_ is: ";
+                std::cout << typeid(type_).name() << std::endl;
+                std::string type = type_.get_var();
+                std::cout << "type is: " << type << std::endl;
+                (*vt)[var] = type;
+                std::cout << "EXITING: Formal::type_check" << std::endl;
                 // TODO: do we need to check if this thing is already in the table or anything?
             }
             std::string get_var() override {return "";}
@@ -177,6 +191,7 @@ namespace AST {
     public:
         explicit Formals() : Seq("Formals") {}
         void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
+            std::cout << "ENTERING Formals:type_check" << std::endl;
             for (ASTNode *formal: elements_) {
                 formal->type_check(ssc, vt);
             }
@@ -193,7 +208,9 @@ namespace AST {
             explicit Method(ASTNode& name, Formals& formals, ASTNode& returns, Block& statements) :
             name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
             void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
+                std::cout << "ENTERING Method::type_check" << std::endl;
                 formals_.type_check(ssc, vt);
+                std::cout << "Method::type_check: made it past formals_.typecheck" << std::endl;
                 statements_.type_check(ssc, vt);
             }
             std::string get_var() override {return "";}
