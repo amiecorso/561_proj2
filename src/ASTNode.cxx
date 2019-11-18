@@ -3,10 +3,13 @@
 //
 
 #include "ASTNode.h"
+#include "staticsemantics.cxx"
 
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
+    // Type checking functions defined here to avoid circular #include situation:
+    
 
     // JSON representation of all the concrete node types.
     // This might be particularly useful if I want to do some

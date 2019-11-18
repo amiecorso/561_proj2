@@ -7,7 +7,7 @@
 
 using namespace std;
 
-class Method {
+class MethodTable {
     public:
         string methodname;
         string returntype;
@@ -16,12 +16,12 @@ class Method {
         // TODO: a method also needs to know the class-scope instance variables
             // do we put these in vars, or keep a separate table?  maybe put in vars??
 
-        Method () {
+        MethodTable () {
             formalargtypes = vector<string>();
             vars = map<string, string>();
         }
 
-        Method(string name) {
+        MethodTable(string name) {
             methodname = name;
             formalargtypes = vector<string>();
             vars = map<string, string>();
@@ -48,20 +48,20 @@ class TypeNode {
         string type;
         string parent;
         map<string, string> instance_vars;
-        map<string, Method> methods;
-        Method construct;
+        map<string, MethodTable> methods;
+        MethodTable construct;
 
         TypeNode() {
             instance_vars = map<string, string>();
-            methods = map<string, Method>();
-            construct = Method();
+            methods = map<string, MethodTable>();
+            construct = MethodTable();
         }
 
         TypeNode(string name) {
             type = name;
             instance_vars = map<string, string>();
-            methods = map<string, Method>();
-            construct = Method(name);
+            methods = map<string, MethodTable>();
+            construct = MethodTable(name);
         }
 
         void print() {
@@ -72,8 +72,8 @@ class TypeNode {
                 cout << "\t" << iter->first << ":" << iter->second << endl;
             }
             cout << "Methods: " << endl;
-            for(std::map<string, Method>::iterator iter = methods.begin(); iter != methods.end(); ++iter) {
-                Method method =  iter->second;
+            for(std::map<string, MethodTable>::iterator iter = methods.begin(); iter != methods.end(); ++iter) {
+                MethodTable method =  iter->second;
                 method.print();
             }
             cout << "Constructor: " << endl;
@@ -86,7 +86,7 @@ class StaticSemantics {
         AST::ASTNode* astroot;
         int found_error;
         map<string, TypeNode> hierarchy;
-        
+
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
             astroot = root;
             found_error = 0;
@@ -139,7 +139,7 @@ class StaticSemantics {
                 for (AST::Method *meth: methods) {
                     AST::Ident* methodname = (AST::Ident*) &(meth->name_);
                     AST::Ident* returntype = (AST::Ident*) &(meth->returns_);
-                    Method newmethod(methodname->text_);
+                    MethodTable newmethod(methodname->text_);
                     newmethod.returntype = returntype->text_;
                     AST::Formals* formalsnode = (AST::Formals*) &(meth->formals_);
                     vector<AST::Formal *> formals = formalsnode->elements_;
@@ -191,7 +191,7 @@ class StaticSemantics {
             AST::Classes classesnode = root->classes_;
             vector<AST::Class *> classes = classesnode.elements_;
             for (AST::Class *cls: classes) {
-                cls->constructor_.type_check(this);
+                cls->constructor_.type_check(this, nullptr);
             } // end for
 
             return &this->hierarchy;

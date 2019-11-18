@@ -12,6 +12,8 @@
 #include <typeinfo>
 #include <map>
 
+class MethodTable;
+class TypeNode;
 class StaticSemantics;
 
 namespace AST {
@@ -35,7 +37,7 @@ namespace AST {
             std::cout << "UNIMPLEMENTED GET_TYPE" << std::endl;
             return "";
         };
-        virtual void type_check(StaticSemantics* ssc, map<std::string, std::string>* vt) {
+        virtual void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) {
             std::cout << "UNIMPLEMENTED TYPE_CHECK" << std::endl;
         }
         virtual void json(std::ostream& out, AST_print_context& ctx) = 0;  // Json string representation
@@ -126,7 +128,7 @@ namespace AST {
             std::string text_;
             std::string get_var() override {return text_;}
             void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-            std::string get_type(std::map<std::string, std::string>* vt) {
+            std::string get_type(std::map<std::string, std::string>* vt) override {
                 if (vt->count(text_)) { // Identifier in table
                     return (*vt)[text_];
                 }
@@ -146,7 +148,7 @@ namespace AST {
     class Block : public Seq<ASTNode> {
     public:
         explicit Block() : Seq("Block") {}
-        void type_check(StaticSemantics* ssc, map<std::string, std::string>* vt) {
+        void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
             for (ASTNode *stmt: elements_) {
                 stmt->type_check(ssc, vt);
             }
@@ -164,7 +166,7 @@ namespace AST {
             ASTNode& type_;
             explicit Formal(ASTNode& var, ASTNode& type_) :
                 var_{var}, type_{type_} {};
-            void type_check(StaticSemantics* ssc, map<std::string, std::string>* vt) {
+            void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
                 (*vt)[var_.get_var()] = type_.get_type(vt);
                 // TODO: do we need to check if this thing is already in the table or anything?
             }
@@ -176,7 +178,7 @@ namespace AST {
     class Formals : public Seq<Formal> {
     public:
         explicit Formals() : Seq("Formals") {}
-        void type_check(StaticSemantics* ssc, map<std::string, std::string>* vt) {
+        void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
             for (ASTNode *formal: elements_) {
                 formal->type_check(ssc, vt);
             }
@@ -192,7 +194,7 @@ namespace AST {
             
             explicit Method(ASTNode& name, Formals& formals, ASTNode& returns, Block& statements) :
             name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
-            void type_check(StaticSemantics* ssc, map<std::string, std::string>* vt) {
+            void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
                 formals_.type_check(ssc, vt);
                 statements_.type_check(ssc, vt);
             }
@@ -204,12 +206,16 @@ namespace AST {
     class Methods : public Seq<Method> {
     public:
         explicit Methods() : Seq("Methods") {}
-        void type_check(StaticSemantics* ssc, map<std::string, std::string>* vt, std::string classname) {
+        void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname);
+        /* {
             for (Method* method: elements_) {
-
-
+                std::string methodname = method->name_.get_var();
+                TypeNode classentry = ssc->hierarchy[classname];
+                MethodTable methodtable = classentry.methods[methodname];
+                std::map<std::string, std::string>* methodvars = &(methodtable.vars);
+                method->type_check(ssc, methodvars);
             }
-        }
+        } */
     };
 
 
@@ -271,7 +277,7 @@ namespace AST {
         Load(LExpr &loc) : loc_{loc} {}
         std::string get_var() override {return loc_.get_var();}
         void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-        std::string get_type(std::map<std::string, std::string>* vt) {
+        std::string get_type(std::map<std::string, std::string>* vt) override {
             return loc_.get_type(vt);
         }
         void json(std::ostream &out, AST_print_context &ctx) override;
@@ -327,13 +333,15 @@ namespace AST {
                 constructor_{constructor}, methods_{methods} {};
             std::string get_var() override {return "";}
             void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-            void type_check(StaticSemantics* ssc, map<std::string, std::string>* vt) {
-                map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[name_.get_var()].instance_vars);
+            /*
+            void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
+                std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[name_.get_var()].instance_vars);
                 constructor_.type_check(ssc, classinstancevars);
                 // How do we know correct table for each method in methods??
                 // this version of type_check is going to need the class name... 
                 methods_.type_check(ssc, vt, name_.get_var());
             }
+            */
             void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
@@ -349,7 +357,7 @@ namespace AST {
         int value_;
     public:
         explicit IntConst(int v) : value_{v} {}
-        std::string get_type(std::map<std::string, std::string>* vt) {
+        std::string get_type(std::map<std::string, std::string>* vt) override {
             return "Int";
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -386,7 +394,7 @@ namespace AST {
         std::string value_;
     public:
         explicit StrConst(std::string v) : value_{v} {}
-        std::string get_type(std::map<std::string, std::string>* vt) {
+        std::string get_type(std::map<std::string, std::string>* vt) override {
             return "String";
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -408,7 +416,7 @@ namespace AST {
     public:
         explicit Construct(Ident& method, Actuals& actuals) :
                 method_{method}, actuals_{actuals} {}
-        std::string get_type(std::map<std::string, std::string>* vt) {
+        std::string get_type(std::map<std::string, std::string>* vt) override {
             return method_.get_type(vt);
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -429,7 +437,7 @@ namespace AST {
         // Convenience factory for the special case of a method
         // created for a binary operator (+, -, etc).
         static Call* binop(std::string opname, Expr& receiver, Expr& arg);
-        std::string get_type(std::map<std::string, std::string>* vt) {
+        std::string get_type(std::map<std::string, std::string>* vt) override {
             return "Call - STUB";
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -455,7 +463,7 @@ namespace AST {
    public:
        explicit And(ASTNode& left, ASTNode& right) :
           BinOp("And", left, right) {}
-        std::string get_type(std::map<std::string, std::string>* vt) {
+        std::string get_type(std::map<std::string, std::string>* vt) override {
             return "Boolean";
         }
    };
@@ -464,7 +472,7 @@ namespace AST {
     public:
         explicit Or(ASTNode& left, ASTNode& right) :
                 BinOp("Or", left, right) {}
-        std::string get_type(std::map<std::string, std::string>* vt) {
+        std::string get_type(std::map<std::string, std::string>* vt) override {
             return "Boolean";
         }
     };
@@ -474,7 +482,7 @@ namespace AST {
     public:
         explicit Not(ASTNode& left ):
             left_{left}  {}
-        std::string get_type(std::map<std::string, std::string>* vt) {
+        std::string get_type(std::map<std::string, std::string>* vt) override {
             return "Boolean";
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -494,7 +502,7 @@ namespace AST {
     public:
         std::string get_var() override {return left_.get_var() + "." + right_.get_var();}
         void collect_vars(std::map<std::string, std::string>* vt) override { return; }
-        std::string get_type(std::map<std::string, std::string>* vt) {
+        std::string get_type(std::map<std::string, std::string>* vt) override {
             return (*vt)[get_var()];
         }
         explicit Dot (Expr& left, Ident& right) :
