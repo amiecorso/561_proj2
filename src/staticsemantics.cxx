@@ -174,6 +174,7 @@ class StaticSemantics {
                 hierarchy[classname] = node; // finally, add node to table
 
             } // end for class in classes
+            cout << " *********************** CH BEFORE TYPE CHECKING *****************" << endl;
             printClassHierarchy();
 
         } // end populateClassHierarchy

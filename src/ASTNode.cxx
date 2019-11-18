@@ -43,7 +43,12 @@ namespace AST {
             std::cout << "ENTERING CALL TO Class::type_check" << std::endl;
             std::string classname = name_.get_var();
             std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[classname].instance_vars);
-            constructor_.type_check(ssc, classinstancevars);
+            std::map<std::string, std::string>* construct_instvars = ssc->hierarchy[classname].construct.vars;
+            constructor_.type_check(ssc, construct_instvars);
+            // update class-level instance vars
+            for(map<string, string>::iterator iter = classinstancevars->begin(); iter != classinstancevars->end(); ++iter) {
+                (*classinstancevars)[iter->first] = (*construct_instvars)[iter->first];
+            }
             ssc->copy_instance_vars(classname);
             // How do we know correct table for each method in methods??
             // this version of type_check is going to need the class name... 
