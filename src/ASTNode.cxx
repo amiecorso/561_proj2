@@ -34,7 +34,7 @@ namespace AST {
                 std::string methodname = method->name_.get_var();
                 TypeNode classentry = ssc->hierarchy[classname];
                 MethodTable methodtable = classentry.methods[methodname];
-                std::map<std::string, std::string>* methodvars = &(methodtable.vars);
+                std::map<std::string, std::string>* methodvars = methodtable.vars;
                 method->type_check(ssc, methodvars);
             }
     }

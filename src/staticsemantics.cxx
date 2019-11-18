@@ -13,19 +13,19 @@ class MethodTable {
         string methodname;
         string returntype;
         vector<string> formalargtypes;
-        map<string, string> vars;
+        map<string, string>* vars;
         // TODO: a method also needs to know the class-scope instance variables
             // do we put these in vars, or keep a separate table?  maybe put in vars??
 
         MethodTable () {
             formalargtypes = vector<string>();
-            vars = map<string, string>();
+            vars = new map<string, string>();
         }
 
         MethodTable(string name) {
             methodname = name;
             formalargtypes = vector<string>();
-            vars = map<string, string>();
+            vars = new map<string, string>();
         }
 
         void print() {
@@ -37,7 +37,7 @@ class MethodTable {
             }
             cout << endl;
             cout << "\t" << "variables: " << endl;
-            for(std::map<string, string>::iterator iter = vars.begin(); iter != vars.end(); ++iter) {
+            for(std::map<string, string>::iterator iter = vars->begin(); iter != vars->end(); ++iter) {
                 cout << "\t\t" << iter->first << ":" << iter->second << endl;
             }
             cout << endl;
@@ -69,11 +69,11 @@ class TypeNode {
             cout << "Type: " << type << endl;
             cout << "Parent: " << parent << endl;
             cout << "Instance vars: " << endl;;
-            for(std::map<string, string>::iterator iter = instance_vars.begin(); iter != instance_vars.end(); ++iter) {
+            for(map<string, string>::iterator iter = instance_vars.begin(); iter != instance_vars.end(); ++iter) {
                 cout << "\t" << iter->first << ":" << iter->second << endl;
             }
             cout << "Methods: " << endl;
-            for(std::map<string, MethodTable>::iterator iter = methods.begin(); iter != methods.end(); ++iter) {
+            for(map<string, MethodTable>::iterator iter = methods.begin(); iter != methods.end(); ++iter) {
                 MethodTable method =  iter->second;
                 method.print();
             }
@@ -135,21 +135,7 @@ class StaticSemantics {
                     node = TypeNode(classname); // otherwise create new node
                 }
                 node.parent = el->super_.text_; // update superclass
-                // methods
-                vector<AST::Method *> methods = (el->methods_).elements_;
-                for (AST::Method *meth: methods) {
-                    AST::Ident* methodname = (AST::Ident*) &(meth->name_);
-                    AST::Ident* returntype = (AST::Ident*) &(meth->returns_);
-                    MethodTable newmethod(methodname->text_);
-                    newmethod.returntype = returntype->text_;
-                    AST::Formals* formalsnode = (AST::Formals*) &(meth->formals_);
-                    vector<AST::Formal *> formals = formalsnode->elements_;
-                    for (AST::Formal *formal: formals) {
-                        AST::Ident *type = (AST::Ident *) &(formal->type_);
-                        newmethod.formalargtypes.push_back(type->text_);
-                    }
-                    node.methods[newmethod.methodname] = newmethod;
-                }
+
                 // constructor (node.construct already exists and is a Method object with name initialized)
                 AST::Method *constructor = (AST::Method *) &(el->constructor_);
                 AST::Ident *returnt = (AST::Ident*) &(constructor->returns_);
@@ -170,6 +156,21 @@ class StaticSemantics {
                     stmt->collect_vars(&node.instance_vars);
                 }
 
+                // methods 
+                vector<AST::Method *> methods = (el->methods_).elements_;
+                for (AST::Method *meth: methods) {
+                    AST::Ident* methodname = (AST::Ident*) &(meth->name_);
+                    AST::Ident* returntype = (AST::Ident*) &(meth->returns_);
+                    MethodTable newmethod(methodname->text_);
+                    newmethod.returntype = returntype->text_;
+                    AST::Formals* formalsnode = (AST::Formals*) &(meth->formals_);
+                    vector<AST::Formal *> formals = formalsnode->elements_;
+                    for (AST::Formal *formal: formals) {
+                        AST::Ident *type = (AST::Ident *) &(formal->type_);
+                        newmethod.formalargtypes.push_back(type->text_);
+                    }
+                    node.methods[newmethod.methodname] = newmethod;
+                }
                 hierarchy[classname] = node; // finally, add node to table
 
             } // end for class in classes
@@ -180,16 +181,30 @@ class StaticSemantics {
         // TODO: make sure class hierarchy is ACYCLIC
 
         void copy_instance_vars(string classname) { // copy class instance vars into method tables
-            cout << "ENTERING ssc::copy_instance_vars" << endl;
+            cout << "ENTERING ssc::copy_instance_vars WTFFFFFFFFF" << endl;
             TypeNode classtable = hierarchy[classname];
+            //cout << "\tgot classtable:" << endl;
+            //classtable.print();
             map<string, string> instancevars = classtable.instance_vars;
+            cout << "\t got instancevars: " << endl;
+            for(map<string, string>::iterator iviter = instancevars.begin(); iviter != instancevars.end(); ++iviter) {
+                cout << iviter->first << " : " << iviter->second << endl;
+            }
             map<string, MethodTable> methods = classtable.methods;
             for(map<string, MethodTable>::iterator miter = methods.begin(); miter != methods.end(); ++miter) {
-                map<string, string> methodvars = (miter->second).vars;
-                for(map<string, string>::iterator viter = instancevars.begin(); viter != instancevars.end(); ++viter) {
-                    methodvars[viter->first] = viter->second;
-                } // end for each instance var
-            } // end for each method
+                MethodTable mt = miter->second;
+                cout << "\t got methodtable:" << endl;
+                mt.print();
+                map<string, string>* methodvars = mt.vars;
+                //(miter->second).vars = map<string, string>(instancevars);
+                //cout << "\tassigning: " << endl;
+                for(map<string, string>::iterator iviter = instancevars.begin(); iviter != instancevars.end(); ++iviter) {
+                    //cout << iviter->first << " : " << iviter->second << endl;
+                    (*methodvars)[iviter->first] = iviter->second;
+                }
+                cout << "\t after assignment: ---------" << endl;
+                mt.print();
+            }
         }
 
         string get_LCA(string type1, string type2) {
@@ -208,6 +223,9 @@ class StaticSemantics {
             cout << "ssc::get_LCA past first while loop" << endl;
 
             type = type2;
+            if (!hierarchy.count(type)) { // if we have a type that is NOT in the table...
+                return type; // for now we're just going to call it that type
+            }
             while (1) {
                 if (type1_path.count(type)) {
                     return type;
