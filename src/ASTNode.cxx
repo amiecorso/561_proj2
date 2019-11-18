@@ -9,7 +9,23 @@ namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
     // Type checking functions defined here to avoid circular #include situation:
-    
+    void Methods::type_check(StaticSemantics* ssc, map<std::string, std::string>* vt, std::string classname) {
+            for (Method* method: elements_) {
+                std::string methodname = method->name_.get_var();
+                TypeNode classentry = ssc->hierarchy[classname];
+                MethodTable methodtable = classentry.methods[methodname];
+                std::map<std::string, std::string>* methodvars = &(methodtable.vars);
+                method->type_check(ssc, methodvars);
+            }
+    }
+
+    void Class::type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) {
+            std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[name_.get_var()].instance_vars);
+            constructor_.type_check(ssc, classinstancevars);
+            // How do we know correct table for each method in methods??
+            // this version of type_check is going to need the class name... 
+            methods_.type_check(ssc, vt, name_.get_var());
+    }
 
     // JSON representation of all the concrete node types.
     // This might be particularly useful if I want to do some

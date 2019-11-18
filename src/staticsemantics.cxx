@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <set>
 
 using namespace std;
 
@@ -175,6 +176,25 @@ class StaticSemantics {
             printClassHierarchy();
 
         } // end populateClassHierarchy
+
+        // TODO: make sure class hierarchy is ACYCLIC
+
+        string get_LCA(string type1, string type2) {
+            set<string> type1_path = set<string>();
+            string type = type1;
+            while (1) {
+                type1_path.insert(type);
+                if (type == "Obj") { break; }
+                type = hierarchy[type].parent;
+            }
+            type = type2;
+            while (1) {
+                if (type1_path.count(type)) {
+                    return type;
+                }
+                type = hierarchy[type].parent;
+            }
+        }
 
         map<string, TypeNode>* typeCheck() {
             // Traverse the classes

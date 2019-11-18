@@ -12,8 +12,6 @@
 #include <typeinfo>
 #include <map>
 
-class MethodTable;
-class TypeNode;
 class StaticSemantics;
 
 namespace AST {
@@ -207,15 +205,6 @@ namespace AST {
     public:
         explicit Methods() : Seq("Methods") {}
         void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname);
-        /* {
-            for (Method* method: elements_) {
-                std::string methodname = method->name_.get_var();
-                TypeNode classentry = ssc->hierarchy[classname];
-                MethodTable methodtable = classentry.methods[methodname];
-                std::map<std::string, std::string>* methodvars = &(methodtable.vars);
-                method->type_check(ssc, methodvars);
-            }
-        } */
     };
 
 
@@ -244,6 +233,9 @@ namespace AST {
         void collect_vars(std::map<std::string, std::string>* vt) override {
             std::string var_name = lexpr_.get_var();
             (*vt)[var_name] = "Bottom";
+        }
+        void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
+            // TODO: YOU ARE HERE
         }
 
         explicit Assign(ASTNode &lexpr, ASTNode &rexpr) :
@@ -333,15 +325,7 @@ namespace AST {
                 constructor_{constructor}, methods_{methods} {};
             std::string get_var() override {return "";}
             void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-            /*
-            void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override {
-                std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[name_.get_var()].instance_vars);
-                constructor_.type_check(ssc, classinstancevars);
-                // How do we know correct table for each method in methods??
-                // this version of type_check is going to need the class name... 
-                methods_.type_check(ssc, vt, name_.get_var());
-            }
-            */
+            void type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) override;
             void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
