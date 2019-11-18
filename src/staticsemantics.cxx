@@ -82,11 +82,11 @@ class TypeNode {
 };
 
 class StaticSemantics {
-    AST::ASTNode* astroot;
-    int found_error;
-    map<string, TypeNode> hierarchy;
-
     public:
+        AST::ASTNode* astroot;
+        int found_error;
+        map<string, TypeNode> hierarchy;
+        
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
             astroot = root;
             found_error = 0;
