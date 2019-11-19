@@ -31,7 +31,7 @@ namespace AST {
     public:
         virtual void collect_vars(std::map<std::string, std::string>* vt) {std::cout << "UNIMPLEMENTED COLLECT_VARS" << std::endl;};
         virtual std::string get_var() {std::cout << "UNIMPLEMENTED GET_VAR" << std::endl; return "";};
-        virtual std::string get_type(std::map<std::string, std::string>* vt) {
+        virtual std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
             std::cout << "UNIMPLEMENTED GET_TYPE" << std::endl;
             return "";
         };
@@ -126,7 +126,7 @@ namespace AST {
             std::string text_;
             std::string get_var() override {return text_;}
             void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-            std::string get_type(std::map<std::string, std::string>* vt) override {
+            std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
                 std::cout << "ENTERING: Ident::get_type" << std::endl;
                 if (vt->count(text_)) { // Identifier in table
                     std::cout << "ENTERING: Ident::get_type, IF-part" << std::endl;
@@ -263,6 +263,7 @@ namespace AST {
     public:
         explicit AssignDeclare(ASTNode &lexpr, ASTNode &rexpr, Ident &static_type) :
             Assign(lexpr, rexpr), static_type_{static_type} {}
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
 
     };
@@ -284,8 +285,12 @@ namespace AST {
         Load(LExpr &loc) : loc_{loc} {}
         std::string get_var() override {return loc_.get_var();}
         void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-        std::string get_type(std::map<std::string, std::string>* vt) override {
-            return loc_.get_type(vt);
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
+            std::cout << "ENTERING Load::get_type" << std::endl;
+            std::string result = loc_.get_type(vt, ssc, classname);
+            std::cout << "\t type of loc_: " << typeid(loc_).name() << result << std::endl;
+            std::cout << "\t result of loc_.get_type: " << result << std::endl;
+            return loc_.get_type(vt, ssc, classname);
         }
         void json(std::ostream &out, AST_print_context &ctx) override;
     };
@@ -356,7 +361,7 @@ namespace AST {
         int value_;
     public:
         explicit IntConst(int v) : value_{v} {}
-        std::string get_type(std::map<std::string, std::string>* vt) override {
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             return "Int";
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -393,7 +398,7 @@ namespace AST {
         std::string value_;
     public:
         explicit StrConst(std::string v) : value_{v} {}
-        std::string get_type(std::map<std::string, std::string>* vt) override {
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             return "String";
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -415,8 +420,8 @@ namespace AST {
     public:
         explicit Construct(Ident& method, Actuals& actuals) :
                 method_{method}, actuals_{actuals} {}
-        std::string get_type(std::map<std::string, std::string>* vt) override {
-            return method_.get_type(vt);
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
+            return method_.get_type(vt, ssc, classname);
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
@@ -436,9 +441,7 @@ namespace AST {
         // Convenience factory for the special case of a method
         // created for a binary operator (+, -, etc).
         static Call* binop(std::string opname, Expr& receiver, Expr& arg);
-        std::string get_type(std::map<std::string, std::string>* vt) override {
-            return "Call - STUB";
-        }
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
@@ -462,7 +465,7 @@ namespace AST {
    public:
        explicit And(ASTNode& left, ASTNode& right) :
           BinOp("And", left, right) {}
-        std::string get_type(std::map<std::string, std::string>* vt) override {
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             return "Boolean";
         }
    };
@@ -471,7 +474,7 @@ namespace AST {
     public:
         explicit Or(ASTNode& left, ASTNode& right) :
                 BinOp("Or", left, right) {}
-        std::string get_type(std::map<std::string, std::string>* vt) override {
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             return "Boolean";
         }
     };
@@ -481,7 +484,7 @@ namespace AST {
     public:
         explicit Not(ASTNode& left ):
             left_{left}  {}
-        std::string get_type(std::map<std::string, std::string>* vt) override {
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             return "Boolean";
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
@@ -494,16 +497,13 @@ namespace AST {
      * ok.  We'll tentatively group it with Binop and consider
      * changing it later if we need to make the distinction.
      */
-
     class Dot : public LExpr {
         Expr& left_;
         Ident& right_;
     public:
         std::string get_var() override {return left_.get_var() + "." + right_.get_var();}
         void collect_vars(std::map<std::string, std::string>* vt) override { return; }
-        std::string get_type(std::map<std::string, std::string>* vt) override {
-            return (*vt)[get_var()];
-        }
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
         explicit Dot (Expr& left, Ident& right) :
            left_{left},  right_{right} {}
         void json(std::ostream& out, AST_print_context& ctx) override;

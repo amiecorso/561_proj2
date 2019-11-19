@@ -14,8 +14,6 @@ class MethodTable {
         string returntype;
         vector<string> formalargtypes;
         map<string, string>* vars;
-        // TODO: a method also needs to know the class-scope instance variables
-            // do we put these in vars, or keep a separate table?  maybe put in vars??
 
         MethodTable () {
             formalargtypes = vector<string>();
@@ -105,22 +103,33 @@ class StaticSemantics {
             }
         }
 
-        void populateClassHierarchy() { // create class hierarchy
+        void populateBuiltins() {
             // Populate built-ins
             TypeNode obj("Obj");
             obj.parent = "TYPE_ERROR";
             hierarchy["Obj"] = obj;
+
             TypeNode integer("Int");
             integer.parent = "Obj";
             hierarchy["Int"] = integer;
+            MethodTable newmethod("PLUS");
+            newmethod.returntype = "Int";
+            hierarchy["Int"].methods["PLUS"] = newmethod;
+
             TypeNode str("String");
             str.parent = "Obj";
             hierarchy["String"] = str;
+
             TypeNode boolean("Boolean");
             boolean.parent = "Obj";
             hierarchy["Boolean"] = boolean;
+
             TypeNode nothing("Nothing");
             nothing.parent = "Obj";
+        }
+
+        void populateClassHierarchy() { // create class hierarchy
+            populateBuiltins();
 
             // Traverse the classes
             AST::Program *root = (AST::Program*) astroot;
@@ -153,9 +162,11 @@ class StaticSemantics {
                 vector<AST::Statement *> *statements = (vector<AST::Statement *> *) &blocknode->elements_;
                 vector<AST::Statement *> stmts = *statements;
 
+                
                 for (AST::Statement *stmt: stmts) {
                     stmt->collect_vars(&node.instance_vars);
-                }
+                } 
+                
 
                 // methods 
                 vector<AST::Method *> methods = (el->methods_).elements_;
@@ -229,11 +240,18 @@ class StaticSemantics {
         }
 
         string get_LCA(string type1, string type2) {
-            cout << "ENTERING: ssc::get_LCA" << type1 << type2 << flush;
-            cout << "type1: ";
-            cout << type1 << endl;
-            cout << "type2: ";
-            cout << type2 << endl;
+            cout << "ENTERING: ssc::get_LCA"  << endl;
+            cout << "\t type1: " << type1 << endl;
+            cout << "\t type2: " << type2 << endl;
+            // TODO: this section is garbage and shouldn't be necessary when rest is working
+            if (type1 == "Bottom") { return type2;}
+            if (type2 == "Bottom") { return type1;}
+            if (!hierarchy.count(type1)) { // if we have a type that is NOT in the table...
+                return type1; // for now we're just going to call it that type
+            }
+            if (!hierarchy.count(type2)) { // if we have a type that is NOT in the table...
+                return type2; // for now we're just going to call it that type
+            }
             set<string> type1_path = set<string>();
             string type = type1;
             while (1) {
@@ -241,12 +259,7 @@ class StaticSemantics {
                 if (type == "Obj") { break; }
                 type = hierarchy[type].parent;
             }
-            cout << "ssc::get_LCA past first while loop" << endl;
-
             type = type2;
-            if (!hierarchy.count(type)) { // if we have a type that is NOT in the table...
-                return type; // for now we're just going to call it that type
-            }
             while (1) {
                 if (type1_path.count(type)) {
                     return type;
@@ -264,7 +277,7 @@ class StaticSemantics {
                 // TODO eventually make this call to type_infer on root node
                 for (AST::Class *cls: classes) {
                     cout << "IN SSC::typeCheck FOR" << endl;
-                    cls->type_infer(this, nullptr, "");
+                    cls->type_infer(this, nullptr, cls->name_.get_var());
                 }
             }
             return &this->hierarchy;

@@ -4,52 +4,81 @@
 
 #include "ASTNode.h"
 #include "staticsemantics.cxx"
+#include <typeinfo>
 
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
     // Type checking functions defined here to avoid circular #include situation:
 
-    void Assign::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname)  {
-        std::cout << "ENTERING: Assign::type_infer" << std::endl;
+    void AssignDeclare::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname)  {
+        std::cout << "ENTERING: AssignDeclare::type_infer" << std::endl;
         std::string lhs_var = lexpr_.get_var();
+        std::string static_type = static_type_.get_var();
         //std::cout << "\tlhs_var = " << lhs_var << std::endl;
-        std::string rhs_type = rexpr_.get_type(vt);
+        std::string rhs_type = rexpr_.get_type(vt, ssc, classname);
         //std::cout << "\trhs_type = " << rhs_type << std::endl;
         map<std::string, std::string> instancevars = (ssc->hierarchy)[classname].instance_vars;
-        if (instancevars.count(lhs_var)) { // in class instance vars
-            (*vt)[lhs_var] = instancevars[lhs_var]; // initialize in my table with other type
-        }
-        else { // NOT in class instance vars
-            if (!vt->count(lhs_var) || ((*vt)[lhs_var] == "Bottom")) { // NOT in my table either (or it is but has value "Bottom")
-                (*vt)[lhs_var] = rhs_type; // gets whatever rhs type is
-                ssc->change_made = 1; // and something changed
-                return; // and we're done!
+        if (!vt->count(lhs_var)) { // NOT in my table
+            if (instancevars.count(lhs_var)) { // in class instance vars
+                (*vt)[lhs_var] = instancevars[lhs_var]; // initialize in my table with other type
             }
-        } // end else
+            else { // NOT in class instance vars either
+                (*vt)[lhs_var] = static_type; // gets whatever rhs type is
+                ssc->change_made = 1; // and something changed
+                // not done yet... we've initialized w/static type but still need to perform type inference
+            } // end else
+        }
         // if we've made it this far, we can perform LCA on the variable, which is in the table and initialized
         std::string lhs_type = (*vt)[lhs_var];
         std::string lca = ssc->get_LCA(lhs_type, rhs_type);
         if (lhs_type != lca) { // change made only if we assign a new type to this var
             (*vt)[lhs_var] = lca;
-            //std::cout << "^^^^^^^^^^ lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
+            std::cout << "^^^^^^^^^^ lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
             ssc->change_made = 1;
         }
     }
-    void Methods::type_infer(StaticSemantics* ssc, map<std::string, std::string>* vt, std::string classname) {
-            std::cout << "ENTERING: Methods::type_infer" << std::endl;
-            for (Method* method: elements_) {
-                std::string methodname = method->name_.get_var();
-                TypeNode classentry = ssc->hierarchy[classname];
-                MethodTable methodtable = classentry.methods[methodname];
-                std::map<std::string, std::string>* methodvars = methodtable.vars;
-                method->type_infer(ssc, methodvars, classname);
+
+    void Assign::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname)  {
+        std::cout << "ENTERING: Assign::type_infer" << std::endl;
+        std::string lhs_var = lexpr_.get_var();
+        //std::cout << "\tlhs_var = " << lhs_var << std::endl;
+        std::string rhs_type = rexpr_.get_type(vt, ssc, classname);
+        //std::cout << "\trhs_type = " << rhs_type << std::endl;
+        map<std::string, std::string> instancevars = (ssc->hierarchy)[classname].instance_vars;
+        if (!vt->count(lhs_var)) { // NOT in my table
+            if (instancevars.count(lhs_var)) { // in class instance vars
+                (*vt)[lhs_var] = instancevars[lhs_var]; // initialize in my table with other type
             }
+            else { // NOT in class instance vars either
+                (*vt)[lhs_var] = rhs_type; // gets whatever rhs type is
+                ssc->change_made = 1; // and something changed
+                return; // and we're done!
+            } // end else
+        }
+        // if we've made it this far, we can perform LCA on the variable, which is in the table and initialized
+        std::string lhs_type = (*vt)[lhs_var];
+        std::string lca = ssc->get_LCA(lhs_type, rhs_type);
+        if (lhs_type != lca) { // change made only if we assign a new type to this var
+            (*vt)[lhs_var] = lca;
+            std::cout << "^^^^^^^^^^ lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
+            ssc->change_made = 1;
+        }
+    }
+
+    void Methods::type_infer(StaticSemantics* ssc, map<std::string, std::string>* vt, std::string classname) {
+        std::cout << "ENTERING: Methods::type_infer" << std::endl;
+        for (Method* method: elements_) {
+            std::string methodname = method->name_.get_var();
+            TypeNode classentry = ssc->hierarchy[classname];
+            MethodTable methodtable = classentry.methods[methodname];
+            std::map<std::string, std::string>* methodvars = methodtable.vars;
+            method->type_infer(ssc, methodvars, classname);
+        }
     }
 
     void Class::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname) {
             std::cout << "ENTERING CALL TO Class::type_infer" << std::endl;
-            std::string classname = name_.get_var();
             std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[classname].instance_vars);
             std::map<std::string, std::string>* construct_instvars = ssc->hierarchy[classname].construct.vars;
             constructor_.type_infer(ssc, construct_instvars, classname);
@@ -63,6 +92,44 @@ namespace AST {
             methods_.type_infer(ssc, vt, name_.get_var());
     }
 
+    std::string Call::get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
+            std::cout << "ENTERING Call::get_type" << std::endl;
+            std::string classtype = receiver_.get_type(vt, ssc, classname);
+            std::string methodname = method_.get_var();
+            std::cout << "\t receiver_ is type: " << typeid(receiver_).name() << std::endl;
+            std::cout << "\t result of receiver_.get_type: " << classtype << std::endl;
+            std::cout << "\t method_ is called: " << methodname << std::endl;
+            std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
+            if (!hierarchy.count(classtype)) { return "TypeError1";}
+            TypeNode classnode = hierarchy[classtype];
+            std::cout << "\t and here's the TypeNode" << std::endl;
+            classnode.print();
+            if (!(classnode.methods.count(methodname))) { return "TypeError2";}
+            MethodTable methodnode = classnode.methods[methodname];
+            // TODO: check if the signature of the method matches the formal args here?
+            return methodnode.returntype;
+    }
+
+    std::string Dot::get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
+        std::cout << "ENTERING Dot::get_type" << std::endl;
+        std::cout << "value of classname: " << classname << endl;
+        std::string lhs_id = get_var();
+        std::cout << "value of get_var: " << lhs_id << endl;
+        if (vt->count(get_var())) {
+            //return (*vt)[get_var()];
+        }
+        std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
+        TypeNode classnode = hierarchy[classname];
+        std::map<std::string, std::string> instancevars = classnode.instance_vars;
+        std::cout << "PRINTING INSTANCE VARS" << endl;
+        for(std::map<string, string>::iterator iter = instancevars.begin(); iter != instancevars.end(); ++iter) {
+            cout << "\t\t" << iter->first << ":" << iter->second << endl;
+        }
+        if (instancevars.count(get_var())) {
+            return instancevars[get_var()];
+        }
+        return "TypeError";
+    }
     // JSON representation of all the concrete node types.
     // This might be particularly useful if I want to do some
     // tree manipulation in Python or another language.  We'll
