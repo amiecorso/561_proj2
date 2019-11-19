@@ -80,19 +80,82 @@ class TypeNode {
         }
 };
 
+class Edge {
+    public:
+        vector<string> children;
+        int visited;
+
+        Edge() {
+            children = vector<string>();
+            visited = 0;
+        }
+
+        void print() {
+            cout << "children: ";
+            for (string child: children) {
+                cout << child << ", ";
+            }
+            cout << endl;
+            cout << "visited: " << visited << endl;
+        }
+};
+
 class StaticSemantics {
     public:
         AST::ASTNode* astroot;
         int found_error;
         int change_made = 1;
         map<string, TypeNode> hierarchy;
+        map<string, Edge*> edges;
 
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
             astroot = root;
             found_error = 0;
             hierarchy = map<string, TypeNode>();
+            edges = map<string, Edge*>();
         }
         // TODO: create destructor?
+
+        int populateEdges() {
+            for(map<string,TypeNode>::iterator iter = hierarchy.begin(); iter != hierarchy.end(); ++iter) {
+                TypeNode node = iter->second;
+                edges[node.type] = new Edge();
+            }
+            for(map<string,TypeNode>::iterator iter = hierarchy.begin(); iter != hierarchy.end(); ++iter) {
+                TypeNode node = iter->second;
+                std::string parent = node.parent;
+                if (iter->first == "Obj") {
+                    continue;
+                }
+                if (!edges.count(node.parent)) {
+                    cout << "Error: class " << node.parent << " undefined, but is superclass of " << iter->first << endl;
+                    return 0;
+                }
+                edges[node.parent]->children.push_back(node.type);
+            }
+            /*
+            for(map<string,Edge*>::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
+                cout << "GRAPH EDGES: " << endl;
+                cout << iter->first << ": ";
+                for(std::string child: iter->second->children) {
+                    cout << child << ", ";
+                }
+                cout << endl << endl;
+            }
+            */
+            return 1;
+        }
+
+        int isCyclic(string root) {
+            Edge* rootedge = edges[root];
+            for (string child: rootedge->children) {
+                Edge* childedge = edges[child];
+                if (childedge->visited) { return 1;} // cycle!!
+                childedge->visited = 1;
+                if (isCyclic(child)) { return 1;}
+            }
+            return 0;
+        }
 
         void printClassHierarchy() {
             cout << "=========CLASS HIERARCHY============" << endl;
@@ -185,11 +248,7 @@ class StaticSemantics {
 
             } // end for class in classes
             cout << " *********************** CH BEFORE TYPE CHECKING *****************" << endl;
-            printClassHierarchy();
-
         } // end populateClassHierarchy
-
-        // TODO: make sure class hierarchy is ACYCLIC
 
         void copy_instance_vars(string classname) { // copy class instance vars into method tables
             cout << "ENTERING ssc::copy_instance_vars WTFFFFFFFFF" << endl;
@@ -282,5 +341,25 @@ class StaticSemantics {
             }
             return &this->hierarchy;
         } // end typeCheck
+
+        void* checkAST() { // top-level
+            populateClassHierarchy();
+            printClassHierarchy();
+
+            if (!populateEdges()) {
+                return nullptr;
+            }
+            
+            if (isCyclic("Obj")) {
+                cout << "GRAPH CYCLE DETECTED" << endl;
+                return nullptr;
+            }
+            else {
+                cout << "GRAPH ACYCLIC" << endl;
+            }
+            //typeCheck();
+            //printClassHierarchy();
+            return &hierarchy;
+        }
 }; 
 

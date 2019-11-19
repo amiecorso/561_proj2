@@ -1,6 +1,7 @@
 /*
  * A point has an x component and a y component
  */
+
  class Pt(x: Int, y: Int) {
      this.x = x;
      this.y = y;

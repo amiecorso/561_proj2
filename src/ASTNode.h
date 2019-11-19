@@ -1,7 +1,7 @@
 //
-// Created by Michal Young on 9/12/18.
+// Started by Michal Young on 9/12/18.
+// Finished by Amie Corso Nov 2019
 //
-
 #ifndef ASTNODE_H
 #define ASTNODE_H
 
@@ -22,8 +22,8 @@ class class_and_method {
             this->methodname = method;
         }
         void print( ) {
-            std::cout << "\t\t\t classname: " << this->classname << std::endl;
-            std::cout << "\t\t\t methodname: " << this->methodname << std::endl;
+            //std::cout << "\t\t\t classname: " << this->classname << std::endl;
+            //std::cout << "\t\t\t methodname: " << this->methodname << std::endl;
         }
 };
 
@@ -133,7 +133,6 @@ namespace AST {
         /* Abstract base class */
     };
 
-
     /* Identifiers like x and literals like 42 are the
     * leaves of the AST.  A literal can only be evaluated
     * for value_ (the 'eval' method), but an identifier
@@ -151,13 +150,13 @@ namespace AST {
                     return (*vt)[text_];
                 }
                 else { // not in table!!
-                    return "Bottom"; // error?? 
+                    std::cout << "TypeError: Identifier " << text_ << " uninitialized" << std::endl;
+                    return "TypeError"; // error?? 
                 }
             }
             explicit Ident(std::string txt) : text_{txt} {}
             void json(std::ostream& out, AST_print_context& ctx) override;
     };
-
 
     /* A block is a sequence of statements or expressions.
      * For simplicity we'll just make it a sequence of ASTNode,
@@ -174,8 +173,6 @@ namespace AST {
             }
         }
      };
-
-
 
     /* Formal arguments list is a list of
      * identifier: type pairs.
@@ -234,9 +231,6 @@ namespace AST {
         explicit Methods() : Seq("Methods") {}
         void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
     };
-
-
-
 
     /* An assignment has an lvalue (location to be assigned to)
      * and an expression.  We evaluate the expression and place
@@ -299,8 +293,8 @@ namespace AST {
         std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             std::cout << "ENTERING Load::get_type" << std::endl;
             std::string result = loc_.get_type(vt, ssc, classname);
-            std::cout << "\t type of loc_: " << typeid(loc_).name() << result << std::endl;
-            std::cout << "\t result of loc_.get_type: " << result << std::endl;
+            //std::cout << "\t type of loc_: " << typeid(loc_).name() << result << std::endl;
+            //std::cout << "\t result of loc_.get_type: " << result << std::endl;
             return loc_.get_type(vt, ssc, classname);
         }
         void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
@@ -308,8 +302,6 @@ namespace AST {
         }
         void json(std::ostream &out, AST_print_context &ctx) override;
     };
-
-
 
     /* 'return' statement returns value from method */
     class Return : public Statement {
@@ -348,9 +340,6 @@ namespace AST {
         void json(std::ostream& out, AST_print_context& ctx) override;
 
     };
-
-
-
 
     /* A class has a name, a list of arguments, and a body
     * consisting of a block (essentially the constructor)
@@ -418,7 +407,6 @@ namespace AST {
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
-
     class StrConst : public Expr {
         std::string value_;
     public:
@@ -434,7 +422,6 @@ namespace AST {
     public:
         explicit Actuals() : Seq("Actuals") {}
     };
-
 
     /* Constructors are different from other method calls. They
       * are static (not looked up in the vtable), have no receiver
@@ -452,11 +439,11 @@ namespace AST {
         }
         void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override { 
             std::cout << "ENTERING Construct::type_infer" << std::endl;
+            // TODO: actuals match signature?
             return; 
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
-
 
     /* Method calls are central to type checking and code
      * generation ... and for us, the operators +, -, etc
@@ -475,7 +462,6 @@ namespace AST {
         std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
-
 
     // Virtual base class for binary operations.
     // Does NOT include +, -, *, /, etc, which
@@ -521,7 +507,6 @@ namespace AST {
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
-
     /* Can a field de-reference (expr . IDENT) be a binary
      * operation?  It can be evaluated to a location (l_exp),
      * whereas an operation like * and + cannot, but maybe that's
@@ -535,11 +520,15 @@ namespace AST {
         std::string get_var() override {return left_.get_var() + "." + right_.get_var();}
         void collect_vars(std::map<std::string, std::string>* vt) override { return; }
         std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override { 
+            left_.type_infer(ssc, vt, info); 
+            right_.type_infer(ssc, vt, info);
+        }
+
         explicit Dot (Expr& left, Ident& right) :
            left_{left},  right_{right} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
-
 
     /* A program has a set of classes (in any order) and a block of
      * statements.
@@ -554,6 +543,5 @@ namespace AST {
         void collect_vars(std::map<std::string, std::string>* vt) override {return;}
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
-
 }
 #endif //ASTNODE_H

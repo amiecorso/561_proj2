@@ -126,8 +126,8 @@ namespace AST {
             std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
             if (!hierarchy.count(classtype)) { return "TypeError1";}
             TypeNode classnode = hierarchy[classtype];
-            std::cout << "\t and here's the TypeNode" << std::endl;
-            classnode.print();
+            //std::cout << "\t and here's the TypeNode" << std::endl;
+            //classnode.print();
             if (!(classnode.methods.count(methodname))) { return "TypeError2";}
             MethodTable methodnode = classnode.methods[methodname];
             // TODO: check if the signature of the method matches the formal args here?
@@ -145,10 +145,12 @@ namespace AST {
         std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
         TypeNode classnode = hierarchy[classname];
         std::map<std::string, std::string> instancevars = classnode.instance_vars;
+        /*
         std::cout << "PRINTING INSTANCE VARS" << endl;
         for(std::map<string, string>::iterator iter = instancevars.begin(); iter != instancevars.end(); ++iter) {
             cout << "\t\t" << iter->first << ":" << iter->second << endl;
         }
+        */
         if (instancevars.count(get_var())) {
             return instancevars[get_var()];
         }
