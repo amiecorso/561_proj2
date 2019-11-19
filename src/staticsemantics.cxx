@@ -276,8 +276,8 @@ class StaticSemantics {
                 change_made = 0; 
                 // TODO eventually make this call to type_infer on root node
                 for (AST::Class *cls: classes) {
-                    cout << "IN SSC::typeCheck FOR" << endl;
-                    cls->type_infer(this, nullptr, cls->name_.get_var());
+                    class_and_method* info = new class_and_method(cls->name_.get_var(), "");
+                    cls->type_infer(this, nullptr, info);
                 }
             }
             return &this->hierarchy;

@@ -11,14 +11,15 @@ namespace AST {
 
     // Type checking functions defined here to avoid circular #include situation:
 
-    void AssignDeclare::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname)  {
+    void AssignDeclare::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info)  {
         std::cout << "ENTERING: AssignDeclare::type_infer" << std::endl;
+            info->print();
         std::string lhs_var = lexpr_.get_var();
         std::string static_type = static_type_.get_var();
         //std::cout << "\tlhs_var = " << lhs_var << std::endl;
-        std::string rhs_type = rexpr_.get_type(vt, ssc, classname);
+        std::string rhs_type = rexpr_.get_type(vt, ssc, info->classname);
         //std::cout << "\trhs_type = " << rhs_type << std::endl;
-        map<std::string, std::string> instancevars = (ssc->hierarchy)[classname].instance_vars;
+        map<std::string, std::string> instancevars = (ssc->hierarchy)[info->classname].instance_vars;
         if (!vt->count(lhs_var)) { // NOT in my table
             if (instancevars.count(lhs_var)) { // in class instance vars
                 (*vt)[lhs_var] = instancevars[lhs_var]; // initialize in my table with other type
@@ -39,18 +40,19 @@ namespace AST {
                 return;
             }
             (*vt)[lhs_var] = lca;
-            //std::cout << "^^^^^^^^^^ADADADAD lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
+            std::cout << "^^^^^^^^^^ADADADAD lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
             ssc->change_made = 1;
         }
     }
 
-    void Assign::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname)  {
+    void Assign::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info)  {
         std::cout << "ENTERING: Assign::type_infer" << std::endl;
+            info->print();
         std::string lhs_var = lexpr_.get_var();
         //std::cout << "\tlhs_var = " << lhs_var << std::endl;
-        std::string rhs_type = rexpr_.get_type(vt, ssc, classname);
+        std::string rhs_type = rexpr_.get_type(vt, ssc, info->classname);
         //std::cout << "\trhs_type = " << rhs_type << std::endl;
-        map<std::string, std::string> instancevars = (ssc->hierarchy)[classname].instance_vars;
+        map<std::string, std::string> instancevars = (ssc->hierarchy)[info->classname].instance_vars;
         if (!vt->count(lhs_var)) { // NOT in my table
             if (instancevars.count(lhs_var)) { // in class instance vars
                 (*vt)[lhs_var] = instancevars[lhs_var]; // initialize in my table with other type
@@ -71,22 +73,25 @@ namespace AST {
         }
     }
 
-    void Methods::type_infer(StaticSemantics* ssc, map<std::string, std::string>* vt, std::string classname) {
+    void Methods::type_infer(StaticSemantics* ssc, map<std::string, std::string>* vt, class_and_method* info) {
         std::cout << "ENTERING: Methods::type_infer" << std::endl;
+            info->print();
         for (Method* method: elements_) {
             std::string methodname = method->name_.get_var();
-            TypeNode classentry = ssc->hierarchy[classname];
+            TypeNode classentry = ssc->hierarchy[info->classname];
             MethodTable methodtable = classentry.methods[methodname];
             std::map<std::string, std::string>* methodvars = methodtable.vars;
-            method->type_infer(ssc, methodvars, classname);
+            class_and_method* methodinfo = new class_and_method(info->classname, methodname);
+            method->type_infer(ssc, methodvars, methodinfo);
         }
     }
 
-    void Class::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname) {
-            std::cout << "ENTERING CALL TO Class::type_infer" << std::endl;
-            std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[classname].instance_vars);
-            std::map<std::string, std::string>* construct_instvars = ssc->hierarchy[classname].construct.vars;
-            constructor_.type_infer(ssc, construct_instvars, classname);
+    void Class::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+            std::cout << "ENTERING Class::type_infer" << std::endl;
+            info->print();
+            std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[info->classname].instance_vars);
+            std::map<std::string, std::string>* construct_instvars = ssc->hierarchy[info->classname].construct.vars;
+            constructor_.type_infer(ssc, construct_instvars, info);
             // update class-level instance vars
             for(map<string, string>::iterator iter = classinstancevars->begin(); iter != classinstancevars->end(); ++iter) {
                 (*classinstancevars)[iter->first] = (*construct_instvars)[iter->first];
@@ -94,20 +99,30 @@ namespace AST {
             //ssc->copy_instance_vars(classname);
             // How do we know correct table for each method in methods??
             // this version of type_infer is going to need the class name... 
-            methods_.type_infer(ssc, vt, name_.get_var());
+            info = new class_and_method(name_.get_var(), "");
+            methods_.type_infer(ssc, vt, info);
     }
 
-    void Return::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname) {
-        
+    void Return::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+        std::cout << "ENTERING Return::type_infer" << std::endl;
+        std::string methodname = info->methodname;
+        TypeNode classnode = ssc->hierarchy[info->classname];
+        MethodTable methodtable = classnode.methods[methodname];
+        std::string methodreturntype = methodtable.returntype;
+        std::string thisreturntype = expr_.get_type(vt, ssc, info->classname);
+        if (!ssc->is_subtype(thisreturntype, methodreturntype)) {
+            std::cout << "TypeError (Return): type of return expr " << thisreturntype << " is not subtype of method return type " << methodreturntype << std::endl;
+        }
+
     }
 
     std::string Call::get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
             std::cout << "ENTERING Call::get_type" << std::endl;
             std::string classtype = receiver_.get_type(vt, ssc, classname);
             std::string methodname = method_.get_var();
-            std::cout << "\t receiver_ is type: " << typeid(receiver_).name() << std::endl;
-            std::cout << "\t result of receiver_.get_type: " << classtype << std::endl;
-            std::cout << "\t method_ is called: " << methodname << std::endl;
+            std::cout << "\t Call::get_type receiver_ is type: " << typeid(receiver_).name() << std::endl;
+            std::cout << "\t Call::get_type result of receiver_.get_type: " << classtype << std::endl;
+            std::cout << "\t Call::get_type method_ is called: " << methodname << std::endl;
             std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
             if (!hierarchy.count(classtype)) { return "TypeError1";}
             TypeNode classnode = hierarchy[classtype];
