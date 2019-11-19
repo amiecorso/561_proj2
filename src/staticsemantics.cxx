@@ -334,10 +334,7 @@ class StaticSemantics {
             while (change_made) {
                 change_made = 0; 
                 // TODO eventually make this call to type_infer on root node
-                for (AST::Class *cls: classes) {
-                    class_and_method* info = new class_and_method(cls->name_.get_var(), "");
-                    cls->type_infer(this, nullptr, info);
-                }
+                classesnode.type_infer(this, nullptr, nullptr);
             }
             return &this->hierarchy;
         } // end typeCheck
@@ -357,8 +354,8 @@ class StaticSemantics {
             else {
                 cout << "GRAPH ACYCLIC" << endl;
             }
-            //typeCheck();
-            //printClassHierarchy();
+            typeCheck();
+            printClassHierarchy();
             return &hierarchy;
         }
 }; 

@@ -86,6 +86,29 @@ namespace AST {
         }
     }
 
+    void Classes::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+        for (AST::Class *cls: elements_) {
+            class_and_method* info = new class_and_method(cls->name_.get_var(), "");
+            cls->type_infer(ssc, vt, info);
+        }
+        // CHECK WHETHER SUBCLASSES HAVE ALL SUPERCLASS INSTANCE VARIABLES
+        std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
+        for (AST::Class *cls: elements_) {
+            std::string classname  = cls->name_.get_var();
+            TypeNode classnode = hierarchy[classname];
+            std::string parentname = classnode.parent;
+            TypeNode parentnode = hierarchy[parentname];
+            std::map<string, string> class_iv = classnode.instance_vars;
+            std::map<string, string> parent_iv = parentnode.instance_vars;
+            for(map<string, string>::iterator iter = parent_iv.begin(); iter != parent_iv.end(); ++iter) {
+                std::string var_name = iter->first;
+                if (!class_iv.count(var_name)) {
+                    std::cout << "Error: class " << classname << " missing parent instance var " << var_name << std::endl;
+                }
+            }
+        }
+    }
+
     void Class::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
             std::cout << "ENTERING Class::type_infer" << std::endl;
             info->print();

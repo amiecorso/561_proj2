@@ -32,4 +32,8 @@
      }
 }
 
+class SubPt(x: Int, y: Int) extends Pt {
+     this.x = x;
+}
+
 Pt(13,42).PRINT(); 

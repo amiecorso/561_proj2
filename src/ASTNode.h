@@ -368,6 +368,7 @@ namespace AST {
     class Classes : public Seq<Class> {
     public:
         explicit Classes() : Seq<Class>("Classes") {}
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
     };
 
     class IntConst : public Expr {
