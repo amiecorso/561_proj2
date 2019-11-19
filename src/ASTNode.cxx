@@ -10,49 +10,57 @@ namespace AST {
 
     // Type checking functions defined here to avoid circular #include situation:
 
-    void Assign::type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt)  {
-        std::cout << "ENTERING: Assign::type_check" << std::endl;
+    void Assign::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname)  {
+        std::cout << "ENTERING: Assign::type_infer" << std::endl;
         std::string lhs_var = lexpr_.get_var();
-        std::cout << "\tlhs_var = " << lhs_var << std::endl;
+        //std::cout << "\tlhs_var = " << lhs_var << std::endl;
         std::string rhs_type = rexpr_.get_type(vt);
-        std::cout << "\trhs_type = " << rhs_type << std::endl;
-        // if lhs variable has unknown type, just assign the rhs type.  OTHERWISE go into LCA
-        if (vt->count(lhs_var) && !((*vt)[lhs_var] == "Bottom")) {
-            //std::cout << "Assign:type_check: IF-part" << std::endl;
-            std::string lhs_type = (*vt)[lhs_var];
-            std::string lca = ssc->get_LCA(lhs_type, rhs_type);
-            (*vt)[lhs_var] = lca;
+        //std::cout << "\trhs_type = " << rhs_type << std::endl;
+        map<std::string, std::string> instancevars = (ssc->hierarchy)[classname].instance_vars;
+        if (instancevars.count(lhs_var)) { // in class instance vars
+            (*vt)[lhs_var] = instancevars[lhs_var]; // initialize in my table with other type
         }
-        else {
-            //std::cout << "Assign:type_check: ELSE-part" << std::endl;
-            (*vt)[lhs_var] = rhs_type;
+        else { // NOT in class instance vars
+            if (!vt->count(lhs_var) || ((*vt)[lhs_var] == "Bottom")) { // NOT in my table either (or it is but has value "Bottom")
+                (*vt)[lhs_var] = rhs_type; // gets whatever rhs type is
+                ssc->change_made = 1; // and something changed
+                return; // and we're done!
+            }
+        } // end else
+        // if we've made it this far, we can perform LCA on the variable, which is in the table and initialized
+        std::string lhs_type = (*vt)[lhs_var];
+        std::string lca = ssc->get_LCA(lhs_type, rhs_type);
+        if (lhs_type != lca) { // change made only if we assign a new type to this var
+            (*vt)[lhs_var] = lca;
+            //std::cout << "^^^^^^^^^^ lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
+            ssc->change_made = 1;
         }
     }
-    void Methods::type_check(StaticSemantics* ssc, map<std::string, std::string>* vt, std::string classname) {
-            std::cout << "ENTERING: Methods::type_check" << std::endl;
+    void Methods::type_infer(StaticSemantics* ssc, map<std::string, std::string>* vt, std::string classname) {
+            std::cout << "ENTERING: Methods::type_infer" << std::endl;
             for (Method* method: elements_) {
                 std::string methodname = method->name_.get_var();
                 TypeNode classentry = ssc->hierarchy[classname];
                 MethodTable methodtable = classentry.methods[methodname];
                 std::map<std::string, std::string>* methodvars = methodtable.vars;
-                method->type_check(ssc, methodvars);
+                method->type_infer(ssc, methodvars, classname);
             }
     }
 
-    void Class::type_check(StaticSemantics* ssc, std::map<std::string, std::string>* vt) {
-            std::cout << "ENTERING CALL TO Class::type_check" << std::endl;
+    void Class::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname) {
+            std::cout << "ENTERING CALL TO Class::type_infer" << std::endl;
             std::string classname = name_.get_var();
             std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[classname].instance_vars);
             std::map<std::string, std::string>* construct_instvars = ssc->hierarchy[classname].construct.vars;
-            constructor_.type_check(ssc, construct_instvars);
+            constructor_.type_infer(ssc, construct_instvars, classname);
             // update class-level instance vars
             for(map<string, string>::iterator iter = classinstancevars->begin(); iter != classinstancevars->end(); ++iter) {
                 (*classinstancevars)[iter->first] = (*construct_instvars)[iter->first];
             }
-            ssc->copy_instance_vars(classname);
+            //ssc->copy_instance_vars(classname);
             // How do we know correct table for each method in methods??
-            // this version of type_check is going to need the class name... 
-            methods_.type_check(ssc, vt, name_.get_var());
+            // this version of type_infer is going to need the class name... 
+            methods_.type_infer(ssc, vt, name_.get_var());
     }
 
     // JSON representation of all the concrete node types.

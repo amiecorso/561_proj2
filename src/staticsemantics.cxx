@@ -86,6 +86,7 @@ class StaticSemantics {
     public:
         AST::ASTNode* astroot;
         int found_error;
+        int change_made = 1;
         map<string, TypeNode> hierarchy;
 
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
@@ -256,19 +257,17 @@ class StaticSemantics {
 
         map<string, TypeNode>* typeCheck() {
             AST::Program *root = (AST::Program*) astroot;
-            int changed = 1;
-            while (changed) {
-                changed = 0; // eventually make this call to type_check on root node
-            }
             AST::Classes classesnode = root->classes_;
             vector<AST::Class *> classes = classesnode.elements_;
-            for (AST::Class *cls: classes) {
-                cout << "IN SSC::typeCheck FOR" << endl;
-                cls->type_check(this, nullptr);
-            } // end for
-
+            while (change_made) {
+                change_made = 0; 
+                // TODO eventually make this call to type_infer on root node
+                for (AST::Class *cls: classes) {
+                    cout << "IN SSC::typeCheck FOR" << endl;
+                    cls->type_infer(this, nullptr, "");
+                }
+            }
             return &this->hierarchy;
         } // end typeCheck
-
-};
+}; 
 
