@@ -33,8 +33,13 @@ namespace AST {
         std::string lhs_type = (*vt)[lhs_var];
         std::string lca = ssc->get_LCA(lhs_type, rhs_type);
         if (lhs_type != lca) { // change made only if we assign a new type to this var
+            if (!(ssc->is_subtype(lca, static_type))) {
+                (*vt)[lhs_var] = "TypeError";
+                std::cout << "TypeError (AssignDeclare): RHS type " << lca << " is not subtype of static type " << static_type << std::endl;
+                return;
+            }
             (*vt)[lhs_var] = lca;
-            std::cout << "^^^^^^^^^^ lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
+            //std::cout << "^^^^^^^^^^ADADADAD lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
             ssc->change_made = 1;
         }
     }
@@ -90,6 +95,10 @@ namespace AST {
             // How do we know correct table for each method in methods??
             // this version of type_infer is going to need the class name... 
             methods_.type_infer(ssc, vt, name_.get_var());
+    }
+
+    void Return::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname) {
+        
     }
 
     std::string Call::get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {

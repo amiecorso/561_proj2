@@ -80,7 +80,11 @@ namespace AST {
 
         std::string get_var() override {return "";}
         void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname) override {
+            for (Kind *el: elements_) {
+                el->type_infer(ssc, vt, classname);
+            }
+        };
 
         void append(Kind *el) { elements_.push_back(el); }
 
@@ -321,6 +325,14 @@ namespace AST {
     public:
         explicit While(ASTNode& cond, Block& body) :
             cond_{cond}, body_{body} { };
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, std::string classname) override {
+            std::string cond_type = cond_.get_type(vt, ssc, classname);
+            if (!(cond_type == "Boolean")) {
+                std::cout << "TypeError (While): Condition does not evaluate to type Boolean (ignoring statements)" << std::endl;
+                return;
+            }
+            body_.type_infer(ssc, vt, classname);
+        }
         void json(std::ostream& out, AST_print_context& ctx) override;
 
     };

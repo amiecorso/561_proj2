@@ -4,6 +4,7 @@
  class Pt(x: Int, y: Int) {
      this.x = x;
      this.y = y;
+     y : Int = "NOT AN INT!";
 
      /* Note type of this.x and this.y is
       * fixed in the object --- methods cannot
@@ -12,11 +13,18 @@
       */
 
      def _get_x(): Int {
-     	 return this.x; 
+     	return this.x; 
      } 
 
      def _get_y(): Int {
      	 return this.y;
+     }
+
+     def test_while(): Int {
+         x = 2;
+         while x < 10 {
+             x = x + 1;
+         }
      }
 
      /* Mutator: Evaluate for effect */

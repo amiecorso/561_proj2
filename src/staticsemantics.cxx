@@ -162,11 +162,9 @@ class StaticSemantics {
                 vector<AST::Statement *> *statements = (vector<AST::Statement *> *) &blocknode->elements_;
                 vector<AST::Statement *> stmts = *statements;
 
-                
                 for (AST::Statement *stmt: stmts) {
                     stmt->collect_vars(&node.instance_vars);
                 } 
-                
 
                 // methods 
                 vector<AST::Method *> methods = (el->methods_).elements_;
@@ -246,6 +244,8 @@ class StaticSemantics {
             // TODO: this section is garbage and shouldn't be necessary when rest is working
             if (type1 == "Bottom") { return type2;}
             if (type2 == "Bottom") { return type1;}
+            if (type1 == "TypeError") { return type2;}
+            if (type2 == "TypeError") { return type1;}
             if (!hierarchy.count(type1)) { // if we have a type that is NOT in the table...
                 return type1; // for now we're just going to call it that type
             }

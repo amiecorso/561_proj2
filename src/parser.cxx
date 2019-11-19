@@ -75,7 +75,6 @@ int main(int argc, char **argv) {
             semanticChecker.populateClassHierarchy();
             semanticChecker.typeCheck();
             semanticChecker.printClassHierarchy();
-
         } else {
             std::cout << "No tree produced." << std::endl;
         }
