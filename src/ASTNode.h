@@ -303,6 +303,9 @@ namespace AST {
             std::cout << "\t result of loc_.get_type: " << result << std::endl;
             return loc_.get_type(vt, ssc, classname);
         }
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
+             return loc_.type_infer(ssc, vt, info); 
+        }
         void json(std::ostream &out, AST_print_context &ctx) override;
     };
 
@@ -385,6 +388,7 @@ namespace AST {
         std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             return "Int";
         }
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override { return; }
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
@@ -422,6 +426,7 @@ namespace AST {
         std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             return "String";
         }
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override { return; }
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
@@ -442,7 +447,12 @@ namespace AST {
         explicit Construct(Ident& method, Actuals& actuals) :
                 method_{method}, actuals_{actuals} {}
         std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
-            return method_.get_type(vt, ssc, classname);
+            std::cout << "ENTERING Construct::get_type" << std::endl;
+            return method_.get_var();
+        }
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override { 
+            std::cout << "ENTERING Construct::type_infer" << std::endl;
+            return; 
         }
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
