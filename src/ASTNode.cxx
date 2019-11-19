@@ -10,10 +10,41 @@ namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
     // Type checking functions defined here to avoid circular #include situation:
+    void Call::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+        receiver_.type_infer(ssc, vt, info);
+        method_.type_infer(ssc, vt, info); // this does nothing
+        actuals_.type_infer(ssc, vt, info);
+        std::string receivertype = receiver_.get_type(vt, ssc, info->classname);
+        // is thi smethod in the type of the receiver?
+        std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
+        std::string methodname = method_.get_var();
+        TypeNode recvnode = hierarchy[receivertype];
+        std::map<std::string, MethodTable> methods = recvnode.methods;
+        if (!methods.count(methodname)) {
+            std::cout << "Error (Call): method " << methodname << " is not defined for type " << receivertype << endl;
+            return;
+        }
+        MethodTable methodtable = methods[methodname];
+        // TODO: why is length of actual args vector (element_) 0?!?! something wrong with parser?
+        int minimum = std::min(methodtable.formalargtypes.size(), actuals_.elements_.size());
+        std::cout << "CHECKING ARGZZZZZZZZZZZZZZZZZZZZZ (min = " << minimum << ")" << std::endl;
+        for (int i = 0; i < minimum; i++) {
+            std::string formaltype = methodtable.formalargtypes[i];
+            std::string actualtype = actuals_.elements_[i]->get_type(vt, ssc, info->classname);
+            std::cout << "Formal type: " << formaltype << "||" << "Actual type: " << actualtype << std::endl;
+            if (formaltype != actualtype) {
+                std::cout << "Error (Call): actual args do not match method signature for call: " << 
+                                        receiver_.get_var() << "." << methodname << "(...)" << std::endl;
+                return;
+            }
+        }
+    }
 
     void AssignDeclare::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info)  {
         std::cout << "ENTERING: AssignDeclare::type_infer" << std::endl;
             info->print();
+        lexpr_.type_infer(ssc, vt, info);
+        rexpr_.type_infer(ssc, vt, info);
         std::string lhs_var = lexpr_.get_var();
         std::string static_type = static_type_.get_var();
         //std::cout << "\tlhs_var = " << lhs_var << std::endl;
@@ -48,6 +79,8 @@ namespace AST {
     void Assign::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info)  {
         std::cout << "ENTERING: Assign::type_infer" << std::endl;
             info->print();
+        lexpr_.type_infer(ssc, vt, info);
+        rexpr_.type_infer(ssc, vt, info);
         std::string lhs_var = lexpr_.get_var();
         //std::cout << "\tlhs_var = " << lhs_var << std::endl;
         std::string rhs_type = rexpr_.get_type(vt, ssc, info->classname);

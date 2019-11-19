@@ -42,6 +42,8 @@ namespace AST {
 
     class ASTNode {
     public:
+        std::string mytype = "ASTNODE!!";
+        std::string getmytype() {return mytype;}
         virtual void collect_vars(std::map<std::string, std::string>* vt) {std::cout << "UNIMPLEMENTED COLLECT_VARS" << std::endl;};
         virtual std::string get_var() {std::cout << "UNIMPLEMENTED GET_VAR" << std::endl; return "";};
         virtual std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
@@ -217,7 +219,7 @@ namespace AST {
             explicit Method(ASTNode& name, Formals& formals, ASTNode& returns, Block& statements) :
             name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
             void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
-                std::cout << "ENTERING Method::type_infer" << std::endl;
+                std::cout << "ENTERING Method::type_infer for method " << name_.get_var() << std::endl;
                 formals_.type_infer(ssc, vt, info);
                 statements_.type_infer(ssc, vt, info);
             }
@@ -457,6 +459,7 @@ namespace AST {
     public:
         explicit Call(Expr& receiver, Ident& method, Actuals& actuals) :
                 receiver_{receiver}, method_{method}, actuals_{actuals} {};
+        void type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
         // Convenience factory for the special case of a method
         // created for a binary operator (+, -, etc).
         static Call* binop(std::string opname, Expr& receiver, Expr& arg);

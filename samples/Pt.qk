@@ -22,8 +22,9 @@
 
      /* Mutator: Evaluate for effect */
      def translate(dx: Int, dy: Int): Nothing {
-     	 this.x = this.x + dx;
-	 this.y = this.y + dy;
+     	this.x = this.x + dx;
+	     this.y = this.y + dy;
+          bogus = this.x + "hello";
      }
 
      /* More functional style: Evaluate for value */
