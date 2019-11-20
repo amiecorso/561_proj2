@@ -9,8 +9,50 @@
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
+    int If::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+        std::cout << "ENTERING If::type_infer" << std::endl;
+        std::map<std::string, std::string> oldvt = std::map<std::string, std::string>(*vt); // copy constructor?
+        std::string cond_type = cond_.get_type(vt, ssc, info->classname);
+        if (cond_type != "Boolean") {
+            std::cout << "TypeError (If): Condition does not evaluate to type Boolean (ignoring statements)" << std::endl;
+            return 0;
+        }
+        std::map<std::string, std::string>* truevt = new std::map<std::string, std::string>();
+        std::map<std::string, std::string>* falsevt = new std::map<std::string, std::string>();
+        truepart_.type_infer(ssc, truevt, info);
+        falsepart_.type_infer(ssc, falsevt, info);
+        // now, take the set intersection of the two maps, and we keep only those variables (with type LCA from two entries)
+        std::set<std::string> keepers = std::set<std::string>();
+        std::cout << "True vars: ";
+        for(map<string, string>::iterator iter = truevt->begin(); iter != truevt->end(); ++iter) {
+            std::cout << iter->first <<  ":" << iter->second << ", ";
+            if (falsevt->count(iter->first)) { keepers.insert(iter->first);}
+        }
+        std::cout << std::endl;
+        std::cout << "False vars: ";
+        for(map<string, string>::iterator iter = falsevt->begin(); iter != falsevt->end(); ++iter) {
+            std::cout << iter->first <<  ":" << iter->second << ", ";
+            if (truevt->count(iter->first)) { keepers.insert(iter->first);}
+        }
+        std::cout << std::endl;
+        for (std::set<std::string>::iterator itr = keepers.begin(); itr != keepers.end(); ++itr) {
+            std::string trueentry = (*truevt)[*itr];
+            std::string falseentry = (*falsevt)[*itr];
+            std::string lca = ssc->get_LCA(trueentry, falseentry);
+            if (vt->count(*itr)) { // already in table... need another lca?
+                std::string current_type = (*vt)[*itr];
+                lca = ssc->get_LCA(lca, current_type);
+            }
+            (*vt)[*itr] = lca; // finally, put in table
+        }
+        if (!ssc->compare_maps(oldvt, *vt)) { // maps not equal
+            return 1;
+        }
+        return 0; // temporary 
+    }
+
     // Type checking functions defined here to avoid circular #include situation:
-    void Call::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+    int Call::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
         receiver_.type_infer(ssc, vt, info);
         method_.type_infer(ssc, vt, info); // this does nothing
         actuals_.type_infer(ssc, vt, info);
@@ -22,27 +64,33 @@ namespace AST {
         std::map<std::string, MethodTable> methods = recvnode.methods;
         if (!methods.count(methodname)) {
             std::cout << "Error (Call): method " << methodname << " is not defined for type " << receivertype << endl;
-            return;
+            return 0;
         }
         MethodTable methodtable = methods[methodname];
         // TODO: why is length of actual args vector (element_) 0?!?! something wrong with parser?
-        int minimum = std::min(methodtable.formalargtypes.size(), actuals_.elements_.size());
-        std::cout << "CHECKING ARGZZZZZZZZZZZZZZZZZZZZZ (min = " << minimum << ")" << std::endl;
-        for (int i = 0; i < minimum; i++) {
+        if (methodtable.formalargtypes.size() != actuals_.elements_.size()) {
+            std::cout << "Error (Call): number of actual args (" << actuals_.elements_.size()
+                            << ") does not match method signature (" << methodtable.formalargtypes.size() 
+                            << ") for call: " << receiver_.get_var() << "." << methodname << "(...)" << std::endl;
+            return 0;
+        }
+        std::cout << "CHECKING ARGZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
+        for (int i = 0; i < actuals_.elements_.size(); i++) {
             std::string formaltype = methodtable.formalargtypes[i];
             std::string actualtype = actuals_.elements_[i]->get_type(vt, ssc, info->classname);
             std::cout << "Formal type: " << formaltype << "||" << "Actual type: " << actualtype << std::endl;
             if (formaltype != actualtype) {
                 std::cout << "Error (Call): actual args do not match method signature for call: " << 
                                         receiver_.get_var() << "." << methodname << "(...)" << std::endl;
-                return;
+                return 0;
             }
         }
+        return 0;
     }
 
-    void AssignDeclare::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info)  {
+    int AssignDeclare::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info)  {
         std::cout << "ENTERING: AssignDeclare::type_infer" << std::endl;
-            info->print();
+        int returnval = 0;        
         lexpr_.type_infer(ssc, vt, info);
         rexpr_.type_infer(ssc, vt, info);
         std::string lhs_var = lexpr_.get_var();
@@ -57,7 +105,7 @@ namespace AST {
             }
             else { // NOT in class instance vars either
                 (*vt)[lhs_var] = static_type; // gets whatever rhs type is
-                ssc->change_made = 1; // and something changed
+                returnval = 1; // and something changed
                 // not done yet... we've initialized w/static type but still need to perform type inference
             } // end else
         }
@@ -68,17 +116,18 @@ namespace AST {
             if (!(ssc->is_subtype(lca, static_type))) {
                 (*vt)[lhs_var] = "TypeError";
                 std::cout << "TypeError (AssignDeclare): RHS type " << lca << " is not subtype of static type " << static_type << std::endl;
-                return;
+                returnval = 0;
             }
             (*vt)[lhs_var] = lca;
             std::cout << "^^^^^^^^^^ADADADAD lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
-            ssc->change_made = 1;
+            returnval = 1;
         }
+        return returnval;
     }
 
-    void Assign::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info)  {
+    int Assign::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info)  {
         std::cout << "ENTERING: Assign::type_infer" << std::endl;
-            info->print();
+        int returnval = 0;
         lexpr_.type_infer(ssc, vt, info);
         rexpr_.type_infer(ssc, vt, info);
         std::string lhs_var = lexpr_.get_var();
@@ -92,8 +141,7 @@ namespace AST {
             }
             else { // NOT in class instance vars either
                 (*vt)[lhs_var] = rhs_type; // gets whatever rhs type is
-                ssc->change_made = 1; // and something changed
-                return; // and we're done!
+                returnval = 1; // and something changed
             } // end else
         }
         // if we've made it this far, we can perform LCA on the variable, which is in the table and initialized
@@ -102,27 +150,73 @@ namespace AST {
         if (lhs_type != lca) { // change made only if we assign a new type to this var
             (*vt)[lhs_var] = lca;
             std::cout << "^^^^^^^^^^ lhs type = " << lhs_type << ", LCA = " << lca << std::endl;
-            ssc->change_made = 1;
+            returnval = 1;
         }
+        return returnval;
     }
 
-    void Methods::type_infer(StaticSemantics* ssc, map<std::string, std::string>* vt, class_and_method* info) {
+    int Methods::type_infer(StaticSemantics* ssc, map<std::string, std::string>* vt, class_and_method* info) {
         std::cout << "ENTERING: Methods::type_infer" << std::endl;
-            info->print();
+        int returnval = 0;
         for (Method* method: elements_) {
             std::string methodname = method->name_.get_var();
             TypeNode classentry = ssc->hierarchy[info->classname];
             MethodTable methodtable = classentry.methods[methodname];
             std::map<std::string, std::string>* methodvars = methodtable.vars;
+            std::map<std::string, std::string> oldmethodvars = std::map<std::string, std::string>(*methodvars); // copy constructor?
             class_and_method* methodinfo = new class_and_method(info->classname, methodname);
             method->type_infer(ssc, methodvars, methodinfo);
+            // WE WILL FIGURE OUT RETURN TYPE LATER
+            // Before we remove them, are the class instance vars being assigned conformant types?
+            std::map<std::string, std::string> classinstance = classentry.instance_vars;
+            for(map<string, string>::iterator iter = methodvars->begin(); iter != methodvars->end(); ++iter) {
+                if (classinstance.count(iter->first)) { // if this var is in the class instance table
+                    std::string methodtype = iter->second;
+                    std::string classtype = classinstance[iter->first];
+                    if (!ssc->is_subtype(methodtype, classtype)) {
+                        std::cout << "Error (Methods): instance variable " << iter->first << " assigned non-conformant"
+                                        << " type in method " << methodname << ". Instance type: " << classtype
+                                        << ", Method assigned type: " << methodtype << std::endl;
+                        // TODO: return here?? or allow type inference to continue? assign something TypeError?
+                        // it's theoretically about to be deleted anyway...
+                    }
+                }
+            }
+            // at this point, we need to REMOVE any class instance variables from the method table:
+            std::cout << "REMOVING VARS: " << std::endl;
+            std::cout << "class instance vars are: ";
+            for(map<string, string>::iterator iter = classinstance.begin(); iter != classinstance.end(); ++iter) {
+                std::cout << iter->first << ", ";
+            }
+            std::cout << std::endl;
+            std::vector<std::string> erasables = std::vector<std::string>();
+            for(map<string, string>::iterator iter = methodvars->begin(); iter != methodvars->end(); ++iter) {
+                std::cout << "method var: " << iter->first << std::endl;
+                if (classinstance.count(iter->first)) { // if this var is in the class instance table
+                    erasables.push_back(iter->first);
+                }
+            }
+            for (std::string eraseme: erasables) {
+                if (methodvars->count(eraseme)) {
+                    methodvars->erase(eraseme);// remove it
+                }
+            }
+            // finally, we need to decide if this method actually changed anything!
+            if (!ssc->compare_maps(oldmethodvars, *methodvars)) { // maps not equal
+                returnval = 1;
+            }
+
         }
+        return returnval;
     }
 
-    void Classes::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+    int Classes::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+        int returnval = 0;
         for (AST::Class *cls: elements_) {
             class_and_method* info = new class_and_method(cls->name_.get_var(), "");
-            cls->type_infer(ssc, vt, info);
+            if (cls->type_infer(ssc, vt, info)) {
+                returnval = 1;
+            }
         }
         // CHECK WHETHER SUBCLASSES HAVE ALL SUPERCLASS INSTANCE VARIABLES
         std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
@@ -140,26 +234,35 @@ namespace AST {
                 }
             }
         }
+        return returnval;
     }
 
-    void Class::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+    int Class::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+            int returnval = 0;
             std::cout << "ENTERING Class::type_infer" << std::endl;
             info->print();
             std::map<std::string, std::string>* classinstancevars = &(ssc->hierarchy[info->classname].instance_vars);
             std::map<std::string, std::string>* construct_instvars = ssc->hierarchy[info->classname].construct.vars;
-            constructor_.type_infer(ssc, construct_instvars, info);
+            if (constructor_.type_infer(ssc, construct_instvars, info)) {
+                returnval = 1;
+            }
             // update class-level instance vars
             for(map<string, string>::iterator iter = classinstancevars->begin(); iter != classinstancevars->end(); ++iter) {
-                (*classinstancevars)[iter->first] = (*construct_instvars)[iter->first];
+                if (iter->first.rfind("this", 0) == 0) {
+                    (*classinstancevars)[iter->first] = (*construct_instvars)[iter->first];
+                }   
             }
             //ssc->copy_instance_vars(classname);
             // How do we know correct table for each method in methods??
             // this version of type_infer is going to need the class name... 
             info = new class_and_method(name_.get_var(), "");
-            methods_.type_infer(ssc, vt, info);
+            if (methods_.type_infer(ssc, vt, info)) {
+                returnval = 1;
+            }
+            return returnval;
     }
 
-    void Return::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+    int Return::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
         std::cout << "ENTERING Return::type_infer" << std::endl;
         std::string methodname = info->methodname;
         TypeNode classnode = ssc->hierarchy[info->classname];
@@ -169,7 +272,7 @@ namespace AST {
         if (!ssc->is_subtype(thisreturntype, methodreturntype)) {
             std::cout << "TypeError (Return): type of return expr " << thisreturntype << " is not subtype of method return type " << methodreturntype << std::endl;
         }
-
+        return 0;
     }
 
     std::string Call::get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {

@@ -5,6 +5,8 @@
  class Pt(x: Int, y: Int) {
      this.x = x;
      this.y = y;
+     test = 42;
+     this.a = test;
 
      /* Note type of this.x and this.y is
       * fixed in the object --- methods cannot
@@ -13,6 +15,8 @@
       */
 
      def _get_x(): Int {
+          this.a = 4;
+          this.y = "HI!";
      	return this.x; 
      } 
 
@@ -24,7 +28,20 @@
      def translate(dx: Int, dy: Int): Nothing {
      	this.x = this.x + dx;
 	     this.y = this.y + dy;
-          bogus = this.x + "hello";
+          bogus = this.x + 10;
+     }
+
+     def if_test() {
+          x = 10;
+          y = 20;
+          if x > 0 {
+               a = 3;
+               b = 4;
+          } else {
+               a = 3;
+               b = "string";
+               c = "shouldnt exist";
+          }
      }
 
      /* More functional style: Evaluate for value */
@@ -32,9 +49,4 @@
      	 return Pt(this.x + other.x, this.y + other.y); 
      }
 }
-
-class SubPt(x: Int, y: Int) extends Pt {
-     this.x = x;
-}
-
 Pt(13,42).PRINT(); 

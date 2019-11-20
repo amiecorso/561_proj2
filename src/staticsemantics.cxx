@@ -102,7 +102,6 @@ class StaticSemantics {
     public:
         AST::ASTNode* astroot;
         int found_error;
-        int change_made = 1;
         map<string, TypeNode> hierarchy;
         map<string, Edge*> edges;
 
@@ -173,9 +172,14 @@ class StaticSemantics {
             TypeNode integer("Int");
             integer.parent = "Obj";
             hierarchy["Int"] = integer;
-            MethodTable newmethod("PLUS");
-            newmethod.returntype = "Int";
-            hierarchy["Int"].methods["PLUS"] = newmethod;
+            MethodTable intplus("PLUS");
+            intplus.returntype = "Int";
+            intplus.formalargtypes.push_back("Int");
+            hierarchy["Int"].methods["PLUS"] = intplus;
+            MethodTable intgreater(">");
+            intgreater.returntype = "Boolean";
+            intgreater.formalargtypes.push_back("Int");
+            hierarchy["Int"].methods[">"] = intgreater;
 
             TypeNode str("String");
             str.parent = "Obj";
@@ -329,15 +333,37 @@ class StaticSemantics {
             AST::Program *root = (AST::Program*) astroot;
             AST::Classes classesnode = root->classes_;
             vector<AST::Class *> classes = classesnode.elements_;
+            int change_made = 1;
             while (change_made) {
-                change_made = 0; 
                 // TODO eventually make this call to type_infer on root node
-                classesnode.type_infer(this, nullptr, nullptr);
+                change_made = classesnode.type_infer(this, nullptr, nullptr); 
             }
             return &this->hierarchy;
         } // end typeCheck
 
+        int compare_maps(map<string, string> map1, map<string, string>map2) {
+            // same types, proceed to compare maps here
+            if(map1.size() != map2.size())
+                return 0;  // differing sizes, they are not the same
+            typename map<string,string>::const_iterator i, j;
+            for(i = map1.begin(), j = map2.begin(); i != map1.end(); ++i, ++j)
+            {
+                if(*i != *j)
+                return 0;
+            }
+            return 1;
+        }
+
         void* checkAST() { // top-level
+        /*
+            map<string, string> map1 = map<string, string>();
+            map1["a"] = "ok";
+            map1["b"] = "whatever";
+            map<string, string> map2 = map<string, string>();
+            map2["a"] = "ok";
+            map2["b"] = "yikes";
+            cout << "map1 == map2? " << compare_maps(map1, map2) << endl;
+        */
             populateClassHierarchy();
             printClassHierarchy();
 
