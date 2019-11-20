@@ -9,6 +9,34 @@
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
+    int Construct::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) { 
+        std::cout << "ENTERING Construct::type_infer" << std::endl;
+        // recursive call to type-check actual args
+        actuals_.type_infer(ssc, vt, info);
+        // verify that the construct call matches signature
+        std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
+        std::string methodname = method_.get_var();
+        TypeNode classnode = hierarchy[methodname]; // method name same as class name
+        MethodTable constructortable = classnode.construct;        
+        if (constructortable.formalargtypes.size() != actuals_.elements_.size()) {
+            std::cout << "Error (Construct): number of actual args (" << actuals_.elements_.size()
+                            << ") does not match method signature (" << constructortable.formalargtypes.size() 
+                            << ") for call: " << methodname << "(...)" << std::endl;
+            return 0;
+        }
+        for (int i = 0; i < actuals_.elements_.size(); i++) {
+            std::string formaltype = constructortable.formalargtypes[i];
+            std::string actualtype = actuals_.elements_[i]->get_type(vt, ssc, info->classname);
+            //std::cout << "Formal type: " << formaltype << "||" << "Actual type: " << actualtype << std::endl;
+            if (!ssc->is_subtype(actualtype, formaltype)) {
+                std::cout << "Error (Construct): actual args do not match method signature for constructor call: "
+                                        << methodname << "(...)" << std::endl;
+                return 0;
+            }
+        }
+        return 0; 
+    }
+
     int If::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
         std::cout << "ENTERING If::type_infer" << std::endl;
         std::map<std::string, std::string> oldvt = std::map<std::string, std::string>(*vt); // copy constructor?
@@ -67,7 +95,6 @@ namespace AST {
             return 0;
         }
         MethodTable methodtable = methods[methodname];
-        // TODO: why is length of actual args vector (element_) 0?!?! something wrong with parser?
         if (methodtable.formalargtypes.size() != actuals_.elements_.size()) {
             std::cout << "Error (Call): number of actual args (" << actuals_.elements_.size()
                             << ") does not match method signature (" << methodtable.formalargtypes.size() 
@@ -79,8 +106,8 @@ namespace AST {
             std::string formaltype = methodtable.formalargtypes[i];
             std::string actualtype = actuals_.elements_[i]->get_type(vt, ssc, info->classname);
             std::cout << "Formal type: " << formaltype << "||" << "Actual type: " << actualtype << std::endl;
-            if (formaltype != actualtype) {
-                std::cout << "Error (Call): actual args do not match method signature for call: " << 
+            if (!ssc->is_subtype(actualtype, formaltype)) {
+                std::cout << "Error (Call): actual args do not conform to method signature for call: " << 
                                         receiver_.get_var() << "." << methodname << "(...)" << std::endl;
                 return 0;
             }
@@ -274,6 +301,32 @@ namespace AST {
         }
         return 0;
     }
+    std::string Construct::get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
+        std::cout << "ENTERING Construct::get_type" << std::endl;
+        std::string methodname = method_.get_var();
+       // verify that the construct call matches signature
+        std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
+        TypeNode classnode = hierarchy[methodname]; // method name same as class name
+        MethodTable constructortable = classnode.construct;        
+        if (constructortable.formalargtypes.size() != actuals_.elements_.size()) {
+            std::cout << "Error (Construct): number of actual args (" << actuals_.elements_.size()
+                            << ") does not match method signature (" << constructortable.formalargtypes.size() 
+                            << ") for call: " << methodname << "(...)" << std::endl;
+            return "TypeError";
+        }
+        for (int i = 0; i < actuals_.elements_.size(); i++) {
+            std::string formaltype = constructortable.formalargtypes[i];
+            std::string actualtype = actuals_.elements_[i]->get_type(vt, ssc, classname);
+            //std::cout << "Formal type: " << formaltype << "||" << "Actual type: " << actualtype << std::endl;
+            if (!ssc->is_subtype(actualtype, formaltype)) {
+                std::cout << "Error (Construct): actual args do not conform to method signature for constructor call: "
+                                        << methodname << "(...)" << std::endl;
+                return "TypeError";
+            }
+        }
+        return methodname;
+    }
+
 
     std::string Call::get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
             std::cout << "ENTERING Call::get_type" << std::endl;
@@ -289,7 +342,23 @@ namespace AST {
             //classnode.print();
             if (!(classnode.methods.count(methodname))) { return "TypeError2";}
             MethodTable methodnode = classnode.methods[methodname];
-            // TODO: check if the signature of the method matches the formal args here?
+            // Check if the signature of the method matches the formal args here
+            if (methodnode.formalargtypes.size() != actuals_.elements_.size()) {
+                std::cout << "Error (Call): number of actual args (" << actuals_.elements_.size()
+                                << ") does not match method signature (" << methodnode.formalargtypes.size() 
+                                << ") for call: " << receiver_.get_var() << "." << methodname << "(...)" << std::endl;
+                return "TypeError";
+            }
+            for (int i = 0; i < actuals_.elements_.size(); i++) {
+                std::string formaltype = methodnode.formalargtypes[i];
+                std::string actualtype = actuals_.elements_[i]->get_type(vt, ssc, classname);
+                std::cout << "Formal type: " << formaltype << "||" << "Actual type: " << actualtype << std::endl;
+                if (!ssc->is_subtype(actualtype, formaltype)) {
+                    std::cout << "Error (Call): actual args do not conform to method signature for call: " << 
+                                            receiver_.get_var() << "." << methodname << "(...)" << std::endl;
+                    return "TypeError";
+                }
+            }
             return methodnode.returntype;
     }
 

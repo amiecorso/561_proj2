@@ -29,6 +29,7 @@
      	this.x = this.x + dx;
 	     this.y = this.y + dy;
           bogus = this.x + 10;
+          pt = Pt(5, "wrongtype");
      }
 
      def if_test() {

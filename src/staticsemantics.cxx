@@ -59,6 +59,7 @@ class TypeNode {
             instance_vars = map<string, string>();
             methods = map<string, MethodTable>();
             construct = MethodTable(name);
+            construct.returntype = name;
         }
 
         void print() {
@@ -161,36 +162,6 @@ class StaticSemantics {
                 node.print();
                 cout << "===================================" << endl;
             }
-        }
-
-        void populateBuiltins() {
-            // Populate built-ins
-            TypeNode obj("Obj");
-            obj.parent = "TYPE_ERROR";
-            hierarchy["Obj"] = obj;
-
-            TypeNode integer("Int");
-            integer.parent = "Obj";
-            hierarchy["Int"] = integer;
-            MethodTable intplus("PLUS");
-            intplus.returntype = "Int";
-            intplus.formalargtypes.push_back("Int");
-            hierarchy["Int"].methods["PLUS"] = intplus;
-            MethodTable intgreater(">");
-            intgreater.returntype = "Boolean";
-            intgreater.formalargtypes.push_back("Int");
-            hierarchy["Int"].methods[">"] = intgreater;
-
-            TypeNode str("String");
-            str.parent = "Obj";
-            hierarchy["String"] = str;
-
-            TypeNode boolean("Boolean");
-            boolean.parent = "Obj";
-            hierarchy["Boolean"] = boolean;
-
-            TypeNode nothing("Nothing");
-            nothing.parent = "Obj";
         }
 
         void populateClassHierarchy() { // create class hierarchy
@@ -352,6 +323,36 @@ class StaticSemantics {
                 return 0;
             }
             return 1;
+        }
+
+        void populateBuiltins() {
+            // Populate built-ins
+            TypeNode obj("Obj");
+            obj.parent = "TYPE_ERROR";
+            hierarchy["Obj"] = obj;
+
+            TypeNode integer("Int");
+            integer.parent = "Obj";
+            hierarchy["Int"] = integer;
+            MethodTable intplus("PLUS");
+            intplus.returntype = "Int";
+            intplus.formalargtypes.push_back("Int");
+            hierarchy["Int"].methods["PLUS"] = intplus;
+            MethodTable intgreater(">");
+            intgreater.returntype = "Boolean";
+            intgreater.formalargtypes.push_back("Int");
+            hierarchy["Int"].methods[">"] = intgreater;
+
+            TypeNode str("String");
+            str.parent = "Obj";
+            hierarchy["String"] = str;
+
+            TypeNode boolean("Boolean");
+            boolean.parent = "Obj";
+            hierarchy["Boolean"] = boolean;
+
+            TypeNode nothing("Nothing");
+            nothing.parent = "Obj";
         }
 
         void* checkAST() { // top-level

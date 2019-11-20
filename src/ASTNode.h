@@ -454,15 +454,8 @@ namespace AST {
     public:
         explicit Construct(Ident& method, Actuals& actuals) :
                 method_{method}, actuals_{actuals} {}
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
-            std::cout << "ENTERING Construct::get_type" << std::endl;
-            return method_.get_var();
-        }
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override { 
-            std::cout << "ENTERING Construct::type_infer" << std::endl;
-            // TODO: actuals match signature?
-            return 0; 
-        }
+        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
+        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
