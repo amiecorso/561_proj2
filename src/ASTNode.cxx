@@ -9,6 +9,51 @@
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
+    int Program::initcheck(std::set<std::string>* vars, StaticSemantics* ssc) {
+        for (map<string, TypeNode>::iterator iter = ssc->hierarchy.begin(); iter != ssc->hierarchy.end(); ++iter) {
+            vars->insert(iter->first); // insert class name as constructor
+            TypeNode classnode = iter->second;
+            std::map<std::string, MethodTable> methods = classnode.methods;
+            for(map<string, MethodTable>::iterator iter = methods.begin(); iter != methods.end(); ++iter) {
+                vars->insert(iter->first); // insert method name
+            }
+        }
+        if (classes_.initcheck(vars)) {return 1;}
+        if (statements_.initcheck(vars)) {return 1;}
+        return 0;
+    }
+            
+    int Program::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) { 
+        int returnval = 0;
+        if (classes_.type_infer(ssc, vt, info)) { returnval = 1; }
+        class_and_method* pgminfo = new class_and_method("__pgm__", "");
+        std::map<std::string, std::string>* pgmvt = &(ssc->hierarchy)["__pgm__"].instance_vars;
+        if (statements_.type_infer(ssc, pgmvt, pgminfo)) { returnval = 1; }
+        return returnval;
+    }
+
+    int Typecase::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+        expr_.type_infer(ssc, vt, info); // can discard result
+        cases_.type_infer(ssc, vt, info); // real work happens for each of these
+        // TODO: what if the body of typecase needs multiple iterations to be complete? 
+        // how do we do this given that we basically have to give it a fresh table every time?
+        // also hold up, isn't this a problem with a while-loop body too?! what if it needs multiple passes
+        // can we store something IN the node? another instance variable that we can set??
+        return 0;
+    }
+    /*
+    int Type_Alternatives::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+
+    }
+
+    int Type_Alternative::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
+        Ident& ident_;
+        Ident& classname_;
+        Block& block_;
+
+    }
+    */
+
     int Construct::type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) { 
         std::cout << "ENTERING Construct::type_infer" << std::endl;
         // recursive call to type-check actual args

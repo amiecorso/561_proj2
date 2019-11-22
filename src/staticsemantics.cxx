@@ -300,18 +300,6 @@ class StaticSemantics {
             }
         }
 
-        map<string, TypeNode>* typeCheck() {
-            AST::Program *root = (AST::Program*) astroot;
-            AST::Classes classesnode = root->classes_;
-            vector<AST::Class *> classes = classesnode.elements_;
-            int change_made = 1;
-            while (change_made) {
-                // TODO eventually make this call to type_infer on root node
-                change_made = classesnode.type_infer(this, nullptr, nullptr); 
-            }
-            return &this->hierarchy;
-        } // end typeCheck
-
         int compare_maps(map<string, string> map1, map<string, string>map2) {
             // same types, proceed to compare maps here
             if(map1.size() != map2.size())
@@ -325,11 +313,28 @@ class StaticSemantics {
             return 1;
         }
 
+        map<string, TypeNode>* typeCheck() {
+            AST::Program *root = (AST::Program*) astroot;
+            int change_made = 1;
+            while (change_made) {
+                change_made = root->type_infer(this, nullptr, nullptr); 
+            }
+            return &this->hierarchy;
+        } // end typeCheck
+
         void populateBuiltins() {
             // Populate built-ins
+            // pseudo-class for program:
+            TypeNode program("__pgm__");
+            program.parent = "Obj";
+            hierarchy["__pgm__"] = program;
+
             TypeNode obj("Obj");
             obj.parent = "TYPE_ERROR";
             hierarchy["Obj"] = obj;
+            MethodTable objprint("PRINT");
+            objprint.returntype = "Nothing";
+            hierarchy["Obj"].methods["PRINT"] = objprint;
 
             TypeNode integer("Int");
             integer.parent = "Obj";
@@ -378,6 +383,12 @@ class StaticSemantics {
             }
             else {
                 cout << "GRAPH ACYCLIC" << endl;
+            }
+            AST::Program *root = (AST::Program*) astroot;
+            set<string> *vars = new set<string>;
+            if (root->initcheck(vars, this)) { 
+                std::cout << "INITIALIZATION ERRORS" << std::endl;
+                return nullptr;
             }
             typeCheck();
             printClassHierarchy();

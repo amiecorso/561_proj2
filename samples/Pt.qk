@@ -50,4 +50,12 @@
      	 return Pt(this.x + other.x, this.y + other.y); 
      }
 }
+
+testvar = 12;
+if testvar > 13 {
+     a = 12;
+} else {
+     a = 14;
+     b = 2;
+}
 Pt(13,42).PRINT(); 
