@@ -212,7 +212,6 @@ namespace AST {
             int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
                 std::cout << "ENTERING Formal:type_infer" << std::endl;
                 std::string var = var_.get_var();
-                std::cout << typeid(type_).name() << std::endl;
                 std::string type = type_.get_var();
                 (*vt)[var] = type;
                 return 0;
@@ -339,8 +338,6 @@ namespace AST {
         std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             std::cout << "ENTERING Load::get_type" << std::endl;
             std::string result = loc_.get_type(vt, ssc, classname);
-            //std::cout << "\t type of loc_: " << typeid(loc_).name() << result << std::endl;
-            //std::cout << "\t result of loc_.get_type: " << result << std::endl;
             return loc_.get_type(vt, ssc, classname);
         }
         int initcheck(std::set<std::string>* vars) override { return 0; }  
@@ -400,9 +397,7 @@ namespace AST {
                 std::cout << "TypeError (While): Condition does not evaluate to type Boolean (ignoring statements)" << std::endl;
                 return 0;
             }
-            std::map<std::string, std::string>* garbage = new std::map<std::string, std::string>();
-            body_.type_infer(ssc, garbage, info); // will fill out the garbage table, but we won't use it after this point
-            return 0; // a while loop can't change anything??
+            return body_.type_infer(ssc, vt, info);
         }
         int initcheck(std::set<std::string>* vars) override {
             if (cond_.initcheck(vars)) {return 1;}
@@ -470,14 +465,13 @@ namespace AST {
                 ident_{ident}, classname_{classname}, block_{block} {}
         std::string get_var() override {return "";}
         void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-        //int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
+        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
     };
 
     class Type_Alternatives : public Seq<Type_Alternative> {
     public:
         explicit Type_Alternatives() : Seq("Type_Alternatives") {}
-        //int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
 
     };
 
