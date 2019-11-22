@@ -159,16 +159,7 @@ namespace AST {
             std::string text_;
             std::string get_var() override {return text_;}
             void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-            std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
-                //std::cout << "ENTERING: Ident::get_type" << std::endl;
-                if (vt->count(text_)) { // Identifier in table
-                    return (*vt)[text_];
-                }
-                else { // not in table!!
-                    std::cout << "TypeError: Identifier " << text_ << " uninitialized" << std::endl;
-                    return "TypeError"; // error?? 
-                }
-            }
+            std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
             int initcheck(std::set<std::string>* vars) override {
                 if (!vars->count(text_)) { // not 0 would be 1, indicating failure
                     std::cout << "INIT ERROR: var " << text_ << " used before initialized" << std::endl;
@@ -337,8 +328,9 @@ namespace AST {
         void collect_vars(std::map<std::string, std::string>* vt) override {return;}
         std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
             std::cout << "ENTERING Load::get_type" << std::endl;
+            std::cout << "loc_ is type: " << typeid(loc_).name() << std::endl;
             std::string result = loc_.get_type(vt, ssc, classname);
-            return loc_.get_type(vt, ssc, classname);
+            return result;
         }
         int initcheck(std::set<std::string>* vars) override { return 0; }  
         int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {

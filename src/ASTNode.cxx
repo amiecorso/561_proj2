@@ -104,8 +104,18 @@ namespace AST {
         TypeNode recvnode = hierarchy[receivertype];
         std::map<std::string, MethodTable> methods = recvnode.methods;
         if (!methods.count(methodname)) {
-            std::cout << "Error (Call): method " << methodname << " is not defined for type " << receivertype << endl;
-            return 0;
+            // can't find method in own class' method table!!
+            // let's search the parent(s)
+            while (1) {
+                std::string classname = recvnode.parent;
+                TypeNode parentnode = hierarchy[classname];
+                methods = parentnode.methods;
+                if (methods.count(methodname)) {break;} // we found it!
+                if (classname == "Obj") {
+                    std::cout << "Error (Call): method " << methodname << " is not defined for type " << receivertype << endl;
+                    return 0;
+                }
+            }
         }
         MethodTable methodtable = methods[methodname];
         if (methodtable.formalargtypes.size() != actuals_.elements_.size()) {
@@ -273,8 +283,14 @@ namespace AST {
             for(map<string, string>::iterator iter = classinstancevars->begin(); iter != classinstancevars->end(); ++iter) {
                 if (iter->first.rfind("this", 0) == 0) {
                     (*classinstancevars)[iter->first] = (*construct_instvars)[iter->first];
+                    std::vector<std::string> splitthis = ssc->split(iter->first, '.');
+                    if (splitthis.size() == 2) {
+                        (*classinstancevars)[splitthis[1]] = (*construct_instvars)[iter->first];
+                    }
                 }   
             }
+            (*classinstancevars)["this"] = name_.get_var(); // put a this in there!
+
             info = new class_and_method(name_.get_var(), "");
             if (methods_.type_infer(ssc, vt, info)) {
                 returnval = 1;
@@ -352,16 +368,50 @@ namespace AST {
             return methodnode.returntype;
     }
 
+    std::string Ident::get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
+        //std::cout << "ENTERING: Ident::get_type" << std::endl;
+        if (text_ == "this") {
+            TypeNode classnode = ssc->hierarchy[classname];
+            std::map<std::string, std::string> instancevars = classnode.instance_vars;
+            if (instancevars.count(text_)) {return instancevars[text_];}
+            else { return "TypeErrorthissss";}
+        }
+        if (vt->count(text_)) { // Identifier in table
+            return (*vt)[text_];
+        }
+        else { // not in table!!
+            std::cout << "TypeError: Identifier " << text_ << " uninitialized" << std::endl;
+            return "TypeError"; // error?? 
+        }
+    }
+
     std::string Dot::get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
         std::cout << "ENTERING Dot::get_type" << std::endl;
-        std::string lhs_id = get_var();
+        /*
+        std::string lhs_id = left_.get_var();
         std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
         TypeNode classnode = hierarchy[classname];
         std::map<std::string, std::string> instancevars = classnode.instance_vars;
-        if (instancevars.count(get_var())) {
-            return instancevars[get_var()];
+        if (instancevars.count(lhs_id)) {
+            return instancevars[lhs_id];
         }
         return "TypeError";
+        */
+        std::string rhs_id = right_.get_var();
+        std::string lhs_id = left_.get_var();
+        std::string lhs_type = left_.get_type(vt, ssc, classname);
+        std::cout << "-------  rhs_id: " << rhs_id << std::endl;
+        std::cout << "-------  lhs_id: " << lhs_id << std::endl;
+        std::cout << "-------  lhs_type: " << lhs_type << std::endl;
+        std::cout << "--------  class name: " << classname << std::endl;
+        std::map<std::string, TypeNode> hierarchy = ssc->hierarchy;
+        TypeNode classnode = hierarchy[lhs_type];
+        std::map<std::string, std::string> instancevars = classnode.instance_vars;
+        if (instancevars.count(rhs_id)) {
+            return instancevars[rhs_id];
+        }
+        return "TypeError";
+
     }
     // JSON representation of all the concrete node types.
     // This might be particularly useful if I want to do some

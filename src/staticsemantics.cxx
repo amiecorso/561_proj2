@@ -1,4 +1,6 @@
 #include "ASTNode.h"
+#include <string>
+#include <sstream>
 #include <iostream>
 #include <map>
 #include <vector>
@@ -313,6 +315,22 @@ class StaticSemantics {
             return 1;
         }
 
+
+        /*
+        COPIED FROM INTERNET
+        */
+        std::vector<std::string> split(std::string strToSplit, char delimeter)
+        {
+            std::stringstream ss(strToSplit);
+            std::string item;
+            std::vector<std::string> splittedStrings;
+            while (std::getline(ss, item, delimeter))
+            {
+            splittedStrings.push_back(item);
+            }
+            return splittedStrings;
+        }
+
         map<string, TypeNode>* typeCheck() {
             AST::Program *root = (AST::Program*) astroot;
             int change_made = 1;
@@ -361,15 +379,6 @@ class StaticSemantics {
         }
 
         void* checkAST() { // top-level
-        /*
-            map<string, string> map1 = map<string, string>();
-            map1["a"] = "ok";
-            map1["b"] = "whatever";
-            map<string, string> map2 = map<string, string>();
-            map2["a"] = "ok";
-            map2["b"] = "yikes";
-            cout << "map1 == map2? " << compare_maps(map1, map2) << endl;
-        */
             populateClassHierarchy();
             printClassHierarchy();
 
