@@ -1,25 +1,19 @@
 /*
  * The Quack runtime needs a base class Obj and a handful 
  * of built-in classes  (Int, String, Nothing, Boolean)
- *
- * Getting the LLVM typing right is a bit of a pain.  We'll 
- * try to do it mainly by casting. 
  */
 #ifndef Builtins_h
 #define Builtins_h
 
 /* Naming conventions:  
- * class_X means a reference to the class structure for class X, 
- * i.e., pointer to the struct that contains the method table. 
- * 
- * obj_X means the corresponding object structure reference, 
- * i.e., a pointer to the struct where instance variables live.
+ * class_X: a reference to the class structure (method table) for class X 
+ *  * Each class structure will have a single instantiation as the_class_X. 
+
+ * obj_X: the corresponding object structure (instance vars) reference, 
  * 
  * For each, we'll define a struct tag with *_struct and
  * and then define a reference to that struct with a typedef, 
  * e.g., class_Obj will be typedefed to struct class_Obj_struct *. 
- * Each class will have a single instantiation as the_class_X. 
- * the_class_X is a pointer to a statically allocated structure. 
  * 
  * All programmer-visible fields of objects are references to 
  * other objects. Boolean, Int, and String have "hidden" fields 

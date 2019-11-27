@@ -34,8 +34,21 @@ string Context::get_local_var(string &ident) {
         // We'll need a declaration in the generated code
         // find type of local var?
         TypeNode classnode = ssc->hierarchy[classname];
-        MethodTable methodt = classnode.methods[methodname];
-        map<string, string>* vars = methodt.vars;
+        MethodTable methodt;
+        map<string, string>* vars;
+        if (methodname == "constructor") {
+            methodt = classnode.construct;
+            vars = methodt.vars;
+        }
+        else {
+            if (methodname == "__pgm__") {
+                vars = &classnode.instance_vars;
+            }
+            else{ 
+                methodt = classnode.methods[methodname];
+                vars = methodt.vars;
+            }
+        }
         string type = (*vars)[ident];
         this->emit(string("obj_") + type + " " + internal + ";");
         return internal;

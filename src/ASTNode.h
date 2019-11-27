@@ -166,6 +166,15 @@ namespace AST {
     class Ident : public LExpr {
         public:
             string text_;
+
+            string genL(Context *con) override {
+                return con->get_local_var(text_);
+            }
+            void genR(Context *con, string targreg) override {
+                /* The lvalue, i.e., address of memory */
+                string loc = con->get_local_var(text_);
+                con->emit(targreg + " = " + loc + ";");
+            }
             string get_var() override {return text_;}
             void collect_vars(map<string, string>* vt) override {return;}
             string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override;
@@ -291,6 +300,12 @@ namespace AST {
         ASTNode &lexpr_;
         ASTNode &rexpr_;
     public:
+        void genR(Context *con, string targreg) override {
+            std::string loc = lexpr_.genL(con);
+            rexpr_.genR(con, targreg);
+            /* Store the value in the location */
+            con->emit(loc + " = " + targreg + ";");
+        }
         void collect_vars(map<string, string>* vt) override {
             string var_name = lexpr_.get_var();
             if (var_name.rfind("this", 0) == 0) {
@@ -441,6 +456,14 @@ namespace AST {
      */
     class Classes : public Seq<Class> {
     public:
+        void genR(Context *con, string targreg) override {
+            for (Class *cls: elements_) {
+                string classname = cls->name_.get_var();
+                Context classcon = Context(*con); // copy constructor
+                classcon.classname = classname;
+                cls->genR(&classcon, targreg);
+            }
+        }
         explicit Classes() : Seq<Class>("Classes") {}
         int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
     };
@@ -652,7 +675,10 @@ namespace AST {
 
         void genR(Context *con, string targreg) override {
             classes_.genR(con, targreg);
-            statements_.genR(con, targreg);
+            Context classcon = Context(*con); // copy constructor
+            classcon.classname = "__pgm__";
+            classcon.methodname = "__pgm__";
+            statements_.genR(&classcon, targreg);
         }
         explicit Program(Classes& classes, Block& statements) :
                 classes_{classes}, statements_{statements} {}

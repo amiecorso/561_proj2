@@ -14,10 +14,11 @@ class Context {
     int next_label_num = 0;
     map<string, string> local_vars;
     ostream &object_code;
+public:
     string classname;
     string methodname;
     StaticSemantics* ssc;
-public:
+
     explicit Context(ostream &out, StaticSemantics* ss, string clsname, string methname) : 
         object_code{out}, ssc{ss}, classname{clsname}, methodname{methname} {};
 

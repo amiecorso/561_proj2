@@ -38,15 +38,15 @@ lex.yy.cxx lex.yy.h:  quack.lxx
 quack.tab.cxx quack.tab.hxx location.hh position.hh stack.hh: quack.yxx
 	$(BISON) --defines --debug --token-table --report=all $<
 
-%.o: %.cxx ASTNode.h CodegenContext.h CodegenContext.cxx staticsemantics.cxx
+%.o: %.cxx ASTNode.h CodegenContext.h
 	$(CC) -c $^
 
 scanner: scanner.o lex.yy.o
 	$(CC) -o scanner $^
 
-parser.o: quack.tab.hxx lex.yy.h ASTNode.h staticsemantics.cxx
+parser.o: quack.tab.hxx lex.yy.h
 
-$(BIN)/parser: parser.o quack.tab.o lex.yy.o ASTNode.o Messages.o CodegenContext.o
+$(BIN)/parser: parser.o quack.tab.o lex.yy.o ASTNode.o Messages.o CodegenContext.o staticsemantics.o
 	$(CC) $^ -o $(BIN)/parser -L /usr/local/lib  -lreflex
 
 ## General recipes
