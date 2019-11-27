@@ -48,7 +48,7 @@ namespace AST {
     class ASTNode {
     public:
         virtual string genL(Context *con) {cout << "GENL UNIMP" << endl; return "";}
-        virtual void genR(Context *con, string targreg) {cout << "GENR UNIMP" << endl;}
+        virtual void genR(Context *con, string targreg) {cout << "GENR UNIMPLLLL" << endl;}
         virtual void collect_vars(map<string, string>* vt) {cout << "UNIMPLEMENTED COLLECT_VARS" << endl;};
         virtual string get_var() {cout << "UNIMPLEMENTED GET_VAR" << endl; return "";};
         virtual string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) {
@@ -100,6 +100,11 @@ namespace AST {
 
         Seq(string kind) : kind_{kind}, elements_{vector<Kind *>()} {}
 
+        void genR(Context *con, string targreg) override {
+            for (ASTNode *node: elements_) {
+                node->genR(con, targreg);
+            }
+        }
         string get_var() override {return "";}
         void collect_vars(map<string, string>* vt) override {return;}
         int initcheck(set<string>* vars) override {
@@ -277,6 +282,9 @@ namespace AST {
 
     class Statement : public ASTNode { 
         public:
+        void genR(Context *con, string targreg) override {
+            cout << "Statement::genR----------------" << endl;
+        }
             string get_var() override {return "";}
             void collect_vars(map<string, string>* vt) override {return;}
     };
@@ -443,6 +451,9 @@ namespace AST {
     class IntConst : public Expr {
         int value_;
     public:
+        void genR(Context *con, string targreg) override {
+            con->emit("int_literal(" + to_string(value_) + ");");
+        }
         explicit IntConst(int v) : value_{v} {}
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "Int";
@@ -484,6 +495,9 @@ namespace AST {
     class StrConst : public Expr {
         string value_;
     public:
+        void genR(Context *con, string targreg) override {
+            con->emit("str_literal(" + value_ + ");");
+        }
         explicit StrConst(string v) : value_{v} {}
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "String";
@@ -638,6 +652,11 @@ namespace AST {
     public:
         Classes& classes_;
         Block& statements_;
+
+        void genR(Context *con, string targreg) override {
+            classes_.genR(con, targreg);
+            statements_.genR(con, targreg);
+        }
         explicit Program(Classes& classes, Block& statements) :
                 classes_{classes}, statements_{statements} {}
         int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;

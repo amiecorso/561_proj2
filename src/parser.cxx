@@ -7,6 +7,7 @@
 #include "ASTNode.h"
 #include "Messages.h"
 #include "staticsemantics.cxx"
+#include "CodegenContext.h"
 
 #include <iostream>
 #include <unistd.h>  // getopt is here
@@ -42,6 +43,21 @@ private:
     AST::ASTNode *root;
 };
 
+void generate_code(AST::ASTNode *root) {
+    AST::Program *astroot = (AST::Program*) root;
+    Context ctx(std::cout);
+    // Prologue
+    ctx.emit("#include <stdio.h>");
+    ctx.emit("int main(int argc, char **argv) {");
+    // Body of generated code
+    std::string target = ctx.alloc_reg();
+    astroot->genR(&ctx, target);
+    // Coda
+    //ctx.emit(std::string(R"(printf("-> %d\n",)")
+    //    + target + ");");
+    ctx.emit("}");
+}
+
 int main(int argc, char **argv) {
     std::string filename;
     char c;
@@ -73,6 +89,8 @@ int main(int argc, char **argv) {
             // return (or null pointer if error)
             StaticSemantics semanticChecker(root);
             semanticChecker.checkAST();
+            AST::Program *astroot = (AST::Program*) root;
+            generate_code(astroot);
         } else {
             std::cout << "No tree produced." << std::endl;
         }
