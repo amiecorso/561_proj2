@@ -17,4 +17,4 @@ src/stack.hh
 src/ASTNode.o
 src/ASTNode.h.gch
 src/staticsemantics.o 
-
+*.gch
