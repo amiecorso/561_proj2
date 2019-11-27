@@ -43,9 +43,9 @@ private:
     AST::ASTNode *root;
 };
 
-void generate_code(AST::ASTNode *root) {
+void generate_code(AST::ASTNode *root, StaticSemantics* ssc) {
     AST::Program *astroot = (AST::Program*) root;
-    Context ctx(std::cout);
+    Context ctx(std::cout, ssc, "", "");
     // Prologue
     ctx.emit("#include <stdio.h>");
     ctx.emit("int main(int argc, char **argv) {");
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
             StaticSemantics semanticChecker(root);
             semanticChecker.checkAST();
             AST::Program *astroot = (AST::Program*) root;
-            generate_code(astroot);
+            generate_code(astroot, &semanticChecker);
         } else {
             std::cout << "No tree produced." << std::endl;
         }

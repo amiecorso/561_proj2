@@ -282,9 +282,6 @@ namespace AST {
 
     class Statement : public ASTNode { 
         public:
-        void genR(Context *con, string targreg) override {
-            cout << "Statement::genR----------------" << endl;
-        }
             string get_var() override {return "";}
             void collect_vars(map<string, string>* vt) override {return;}
     };
