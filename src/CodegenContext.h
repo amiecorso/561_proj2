@@ -15,31 +15,33 @@
 #include <ostream>
 #include <map>
 
-class CodegenContext {
+using namespace std;
+
+class Context {
     // In place of registers, we'll use local integer variables.
     // Declarations are tricky if we reuse variable names, so we'll
     // just create as many temporaries as we need.
     int next_reg_num = 0;
     int next_label_num = 0;
-    std::map<std::string, std::string> local_vars;
-    std::ostream &object_code;
+    map<string, string> local_vars;
+    ostream &object_code;
 public:
-    explicit CodegenContext(std::ostream &out) : object_code{out} {};
-    void emit(std::string s) { object_code << " " << s  << std::endl; }
+    explicit Context(ostream &out) : object_code{out} {};
+    void emit(string s) { object_code << " " << s  << endl; }
 
     /* Getting the name of a "register" (really a local variable in C)
      * has the side effect of emitting a declaration for the variable.
      */
-    std::string alloc_reg() {
+    string alloc_reg() {
         int reg_num = next_reg_num++;
-        std::string reg_name = "tmp__" + std::to_string(reg_num);
-        object_code << "int " << reg_name << ";" << std::endl;
+        string reg_name = "tmp__" + to_string(reg_num);
+        object_code << "int " << reg_name << ";" << endl;
         return reg_name;
     }
 
-    void free_reg(std::string reg) {
+    void free_reg(string reg) {
         // We don't have real registers, so there is nothing to free.
-        this->emit(std::string("// Free ") + reg);
+        this->emit(string("// Free ") + reg);
     }
 
     /* Get internal name for a calculator variable.
@@ -47,12 +49,12 @@ public:
      * the variable has not been mentioned before.  (Later,
      * we should buffer up the program to avoid this.)
      */
-    std::string get_local_var(std::string &ident) {
+    string get_local_var(string &ident) {
         if (local_vars.count(ident) == 0) {
-            std::string internal = std::string("calc_var_") + ident;
+            string internal = string("calc_var_") + ident;
             local_vars[ident] = internal;
             // We'll need a declaration in the generated code
-            this->emit(std::string("int ") + internal + "; // Source variable " + ident);
+            this->emit(string("int ") + internal + "; // Source variable " + ident);
             return internal;
         }
         return local_vars[ident];
@@ -64,8 +66,8 @@ public:
      * (e.g., distinguishing the 'else' branch from the 'endif'
      * branch).
      */
-    std::string new_branch_label(const char* prefix) {
-        return std::string(prefix) + "_" + std::to_string(++next_label_num);
+    string new_branch_label(const char* prefix) {
+        return string(prefix) + "_" + to_string(++next_label_num);
     }
 
 };

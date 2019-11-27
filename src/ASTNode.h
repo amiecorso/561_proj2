@@ -12,19 +12,23 @@
 #include <typeinfo>
 #include <map>
 #include <set>
+#include "CodegenContext.h"
+
+using namespace std;
 
 class StaticSemantics;
+
 class class_and_method {
     public:
-        std::string classname;
-        std::string methodname;
-        class_and_method(std::string classname, std::string method) {
+        string classname;
+        string methodname;
+        class_and_method(string classname, string method) {
             this->classname = classname;
             this->methodname = method;
         }
         void print( ) {
-            //std::cout << "\t\t\t classname: " << this->classname << std::endl;
-            //std::cout << "\t\t\t methodname: " << this->methodname << std::endl;
+            //cout << "\t\t\t classname: " << this->classname << endl;
+            //cout << "\t\t\t methodname: " << this->methodname << endl;
         }
 };
 
@@ -43,38 +47,38 @@ namespace AST {
 
     class ASTNode {
     public:
-        std::string mytype = "ASTNODE!!";
-        std::string getmytype() {return mytype;}
-        virtual void collect_vars(std::map<std::string, std::string>* vt) {std::cout << "UNIMPLEMENTED COLLECT_VARS" << std::endl;};
-        virtual std::string get_var() {std::cout << "UNIMPLEMENTED GET_VAR" << std::endl; return "";};
-        virtual std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) {
-            std::cout << "UNIMPLEMENTED GET_TYPE" << std::endl;
+        virtual string genL(Context *con) {cout << "GENL UNIMP" << endl; return "";}
+        virtual void genR(Context *con, string targreg) {cout << "GENR UNIMP" << endl;}
+        virtual void collect_vars(map<string, string>* vt) {cout << "UNIMPLEMENTED COLLECT_VARS" << endl;};
+        virtual string get_var() {cout << "UNIMPLEMENTED GET_VAR" << endl; return "";};
+        virtual string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) {
+            cout << "UNIMPLEMENTED GET_TYPE" << endl;
             return "Nothing";
         };
-        virtual int initcheck(std::set<std::string>* vars) {std::cout << "UNIMPLEMENTED initcheck" << std::endl; return 0;}
-        virtual int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) {
-            std::cout << "UNIMPLEMENTED type_infer" << std::endl;
+        virtual int initcheck(set<string>* vars) {cout << "UNIMPLEMENTED initcheck" << endl; return 0;}
+        virtual int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) {
+            cout << "UNIMPLEMENTED type_infer" << endl;
             return 0;
         }
-        virtual void json(std::ostream& out, AST_print_context& ctx) = 0;  // Json string representation
-        std::string str() {
-            std::stringstream ss;
+        virtual void json(ostream& out, AST_print_context& ctx) = 0;  // Json string representation
+        string str() {
+            stringstream ss;
             AST_print_context ctx;
             json(ss, ctx);
             return ss.str();
         }
     protected:
-        void json_indent(std::ostream& out, AST_print_context& ctx);
-        void json_head(std::string node_kind, std::ostream& out, AST_print_context& ctx);
-        void json_close(std::ostream& out, AST_print_context& ctx);
-        void json_child(std::string field, ASTNode& child, std::ostream& out, AST_print_context& ctx, char sep=',');
+        void json_indent(ostream& out, AST_print_context& ctx);
+        void json_head(string node_kind, ostream& out, AST_print_context& ctx);
+        void json_close(ostream& out, AST_print_context& ctx);
+        void json_child(string field, ASTNode& child, ostream& out, AST_print_context& ctx, char sep=',');
     };
 
     class Stub : public ASTNode {
-        std::string name_;
+        string name_;
     public:
-        explicit Stub(std::string name) : name_{name} {}
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        explicit Stub(string name) : name_{name} {}
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     /*
@@ -91,21 +95,21 @@ namespace AST {
     template<class Kind>
     class Seq : public ASTNode {
     public:
-        std::string kind_;
-        std::vector<Kind *> elements_;
+        string kind_;
+        vector<Kind *> elements_;
 
-        Seq(std::string kind) : kind_{kind}, elements_{std::vector<Kind *>()} {}
+        Seq(string kind) : kind_{kind}, elements_{vector<Kind *>()} {}
 
-        std::string get_var() override {return "";}
-        void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-        int initcheck(std::set<std::string>* vars) override {
+        string get_var() override {return "";}
+        void collect_vars(map<string, string>* vt) override {return;}
+        int initcheck(set<string>* vars) override {
             for (ASTNode *node: elements_) {
                 if (node->initcheck(vars)) { return 1; } // failure
             }
             return 0;
         }
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
-            std::cout << "ENTERING Seq::type_infer" << std::endl;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+            cout << "ENTERING Seq::type_infer" << endl;
             info->print();
             int returnval = 0;
             for (Kind *el: elements_) {
@@ -118,7 +122,7 @@ namespace AST {
 
         void append(Kind *el) { elements_.push_back(el); }
 
-        void json(std::ostream &out, AST_print_context &ctx) override {
+        void json(ostream &out, AST_print_context &ctx) override {
             json_head(kind_, out, ctx);
             out << "\"elements_\" : [";
             auto sep = "";
@@ -156,19 +160,19 @@ namespace AST {
     */
     class Ident : public LExpr {
         public:
-            std::string text_;
-            std::string get_var() override {return text_;}
-            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-            std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
-            int initcheck(std::set<std::string>* vars) override {
+            string text_;
+            string get_var() override {return text_;}
+            void collect_vars(map<string, string>* vt) override {return;}
+            string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override;
+            int initcheck(set<string>* vars) override {
                 if (!vars->count(text_)) { // not 0 would be 1, indicating failure
-                    std::cout << "INIT ERROR: var " << text_ << " used before initialized" << std::endl;
+                    cout << "INIT ERROR: var " << text_ << " used before initialized" << endl;
                     return 1;
                 }
                 return 0;
             }
-            explicit Ident(std::string txt) : text_{txt} {}
-            void json(std::ostream& out, AST_print_context& ctx) override;
+            explicit Ident(string txt) : text_{txt} {}
+            void json(ostream& out, AST_print_context& ctx) override;
     };
 
     /* A block is a sequence of statements or expressions.
@@ -178,8 +182,8 @@ namespace AST {
     class Block : public Seq<ASTNode> {
     public:
         explicit Block() : Seq("Block") {}
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
-            std::cout << "ENTERING: Block::type_infer" << std::endl;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+            cout << "ENTERING: Block::type_infer" << endl;
             info->print();
             int returnval = 0;
             for (ASTNode *stmt: elements_) {
@@ -200,29 +204,29 @@ namespace AST {
             ASTNode& type_;
             explicit Formal(ASTNode& var, ASTNode& type_) :
                 var_{var}, type_{type_} {};
-            int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
-                std::cout << "ENTERING Formal:type_infer" << std::endl;
-                std::string var = var_.get_var();
-                std::string type = type_.get_var();
+            int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+                cout << "ENTERING Formal:type_infer" << endl;
+                string var = var_.get_var();
+                string type = type_.get_var();
                 (*vt)[var] = type;
                 return 0;
                 // TODO: do we need to check if this thing is already in the table or anything?
             }
-            int initcheck(std::set<std::string>* vars) override {
+            int initcheck(set<string>* vars) override {
                 vars->insert(var_.get_var());
                 return 0;
             }
-            std::string get_var() override {return "";}
-            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-            void json(std::ostream& out, AST_print_context&ctx) override;
+            string get_var() override {return "";}
+            void collect_vars(map<string, string>* vt) override {return;}
+            void json(ostream& out, AST_print_context&ctx) override;
     };
 
     class Formals : public Seq<Formal> {
     public:
         explicit Formals() : Seq("Formals") {}
         /* Let's have Seq take care of this
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
-            std::cout << "ENTERING Formals:type_infer" << std::endl;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+            cout << "ENTERING Formals:type_infer" << endl;
             for (ASTNode *formal: elements_) {
                 formal->type_infer(ssc, vt, info);
             }
@@ -239,27 +243,27 @@ namespace AST {
             
             explicit Method(ASTNode& name, Formals& formals, ASTNode& returns, Block& statements) :
             name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
-            int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
-                std::cout << "ENTERING Method::type_infer for method " << name_.get_var() << std::endl;
+            int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+                cout << "ENTERING Method::type_infer for method " << name_.get_var() << endl;
                 int returnval = 0;
                 int freturn = formals_.type_infer(ssc, vt, info);
                 int sreturn = statements_.type_infer(ssc, vt, info);
                 return freturn || sreturn;
             }
-            int initcheck(std::set<std::string>* vars) override {
+            int initcheck(set<string>* vars) override {
                 if (formals_.initcheck(vars)) { return 1; }
                 if (statements_.initcheck(vars)) { return 1; }
                 return 0; // success
             }
-            std::string get_var() override {return "";}
-            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-            void json(std::ostream& out, AST_print_context&ctx) override;
+            string get_var() override {return "";}
+            void collect_vars(map<string, string>* vt) override {return;}
+            void json(ostream& out, AST_print_context&ctx) override;
     };
 
     class Methods : public Seq<Method> {
     public:
         explicit Methods() : Seq("Methods") {}
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
     };
 
     /* An assignment has an lvalue (location to be assigned to)
@@ -273,8 +277,8 @@ namespace AST {
 
     class Statement : public ASTNode { 
         public:
-            std::string get_var() override {return "";}
-            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
+            string get_var() override {return "";}
+            void collect_vars(map<string, string>* vt) override {return;}
     };
 
     class Assign : public Statement {
@@ -282,21 +286,21 @@ namespace AST {
         ASTNode &lexpr_;
         ASTNode &rexpr_;
     public:
-        void collect_vars(std::map<std::string, std::string>* vt) override {
-            std::string var_name = lexpr_.get_var();
+        void collect_vars(map<string, string>* vt) override {
+            string var_name = lexpr_.get_var();
             if (var_name.rfind("this", 0) == 0) {
                 (*vt)[var_name] = "Bottom";
             }
         }
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
-        int initcheck(std::set<std::string>* vars) override {
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
+        int initcheck(set<string>* vars) override {
             if (rexpr_.initcheck(vars)) { return 1; }
             vars->insert(lexpr_.get_var());
             return 0;
         }        
         explicit Assign(ASTNode &lexpr, ASTNode &rexpr) :
            lexpr_{lexpr}, rexpr_{rexpr} {}
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     class AssignDeclare : public Assign {
@@ -304,8 +308,8 @@ namespace AST {
     public:
         explicit AssignDeclare(ASTNode &lexpr, ASTNode &rexpr, Ident &static_type) :
             Assign(lexpr, rexpr), static_type_{static_type} {}
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
+        void json(ostream& out, AST_print_context& ctx) override;
 
     };
 
@@ -324,19 +328,19 @@ namespace AST {
         LExpr &loc_;
     public:
         Load(LExpr &loc) : loc_{loc} {}
-        std::string get_var() override {return loc_.get_var();}
-        void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
-            std::cout << "ENTERING Load::get_type" << std::endl;
-            std::cout << "loc_ is type: " << typeid(loc_).name() << std::endl;
-            std::string result = loc_.get_type(vt, ssc, classname);
+        string get_var() override {return loc_.get_var();}
+        void collect_vars(map<string, string>* vt) override {return;}
+        string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
+            cout << "ENTERING Load::get_type" << endl;
+            cout << "loc_ is type: " << typeid(loc_).name() << endl;
+            string result = loc_.get_type(vt, ssc, classname);
             return result;
         }
-        int initcheck(std::set<std::string>* vars) override { return 0; }  
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
+        int initcheck(set<string>* vars) override { return 0; }  
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
              return loc_.type_infer(ssc, vt, info); 
         }
-        void json(std::ostream &out, AST_print_context &ctx) override;
+        void json(ostream &out, AST_print_context &ctx) override;
     };
 
     /* 'return' statement returns value from method */
@@ -344,12 +348,12 @@ namespace AST {
         ASTNode &expr_;
     public:
         explicit Return(ASTNode& expr) : expr_{expr}  {}
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
-        int initcheck(std::set<std::string>* vars) override {
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
+        int initcheck(set<string>* vars) override {
             if (expr_.initcheck(vars)) { return 1; }
             return 0;
         }  
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     class If : public Statement {
@@ -359,21 +363,21 @@ namespace AST {
     public:
         explicit If(ASTNode& cond, Seq<ASTNode>& truepart, Seq<ASTNode>& falsepart) :
             cond_{cond}, truepart_{truepart}, falsepart_{falsepart} { };
-        int initcheck(std::set<std::string>* vars) override {
+        int initcheck(set<string>* vars) override {
             if (cond_.initcheck(vars)) {return 1;}
-            std::set<std::string>* trueset = new std::set<std::string>(*vars); // copy constructor
-            std::set<std::string>* falseset = new std::set<std::string>(*vars); // copy constructor
+            set<string>* trueset = new set<string>(*vars); // copy constructor
+            set<string>* falseset = new set<string>(*vars); // copy constructor
             if (truepart_.initcheck(trueset)) {return 1;}
             if (falsepart_.initcheck(falseset)) {return 1;}
             // take set intersection
-            for (std::set<std::string>::iterator itr = trueset->begin(); itr != trueset->end(); ++itr) {
+            for (set<string>::iterator itr = trueset->begin(); itr != trueset->end(); ++itr) {
                 if (falseset->count(*itr)) {
                     vars->insert(*itr); // if also in false part, insert to table (duplication ok, it's a set)
                 }
             }
             return 0;
         }  
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;        void json(std::ostream& out, AST_print_context& ctx) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     class While : public Statement {
@@ -382,22 +386,22 @@ namespace AST {
     public:
         explicit While(ASTNode& cond, Block& body) :
             cond_{cond}, body_{body} { };
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override {
-            std::cout << "ENTERING While::type_infer" << std::endl;
-            std::string cond_type = cond_.get_type(vt, ssc, info->classname);
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+            cout << "ENTERING While::type_infer" << endl;
+            string cond_type = cond_.get_type(vt, ssc, info->classname);
             if (cond_type != "Boolean") {
-                std::cout << "TypeError (While): Condition does not evaluate to type Boolean (ignoring statements)" << std::endl;
+                cout << "TypeError (While): Condition does not evaluate to type Boolean (ignoring statements)" << endl;
                 return 0;
             }
             return body_.type_infer(ssc, vt, info);
         }
-        int initcheck(std::set<std::string>* vars) override {
+        int initcheck(set<string>* vars) override {
             if (cond_.initcheck(vars)) {return 1;}
-            std::set<std::string>* bodyset = new std::set<std::string>(*vars); // copy constructor
+            set<string>* bodyset = new set<string>(*vars); // copy constructor
             if (body_.initcheck(bodyset)) {return 1;}
             return 0;
         }  
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        void json(ostream& out, AST_print_context& ctx) override;
 
     };
 
@@ -416,15 +420,15 @@ namespace AST {
                     ASTNode& constructor, Methods& methods) :
                 name_{name},  super_{super},
                 constructor_{constructor}, methods_{methods} {};
-            std::string get_var() override {return "";}
-            void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-            int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
-            int initcheck(std::set<std::string>* vars) override {
+            string get_var() override {return "";}
+            void collect_vars(map<string, string>* vt) override {return;}
+            int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
+            int initcheck(set<string>* vars) override {
                 if (constructor_.initcheck(vars)) {return 1;}
                 if (methods_.initcheck(vars)) {return 1;}
                 return 0;
             }  
-            void json(std::ostream& out, AST_print_context& ctx) override;
+            void json(ostream& out, AST_print_context& ctx) override;
     };
 
     /* A Quack program begins with a sequence of zero or more
@@ -433,19 +437,19 @@ namespace AST {
     class Classes : public Seq<Class> {
     public:
         explicit Classes() : Seq<Class>("Classes") {}
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
     };
 
     class IntConst : public Expr {
         int value_;
     public:
         explicit IntConst(int v) : value_{v} {}
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
+        string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "Int";
         }
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override { return 0; }
-        int initcheck(std::set<std::string>* vars) override {return 0;};
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override { return 0; }
+        int initcheck(set<string>* vars) override {return 0;};
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     class Type_Alternative : public ASTNode {
@@ -455,10 +459,10 @@ namespace AST {
     public:
         explicit Type_Alternative(Ident& ident, Ident& classname, Block& block) :
                 ident_{ident}, classname_{classname}, block_{block} {}
-        std::string get_var() override {return "";}
-        void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        string get_var() override {return "";}
+        void collect_vars(map<string, string>* vt) override {return;}
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     class Type_Alternatives : public Seq<Type_Alternative> {
@@ -473,20 +477,20 @@ namespace AST {
     public:
         explicit Typecase(Expr& expr, Type_Alternatives& cases) :
                 expr_{expr}, cases_{cases} {};
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     class StrConst : public Expr {
-        std::string value_;
+        string value_;
     public:
-        explicit StrConst(std::string v) : value_{v} {}
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
+        explicit StrConst(string v) : value_{v} {}
+        string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "String";
         }
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override { return 0; }
-        int initcheck(std::set<std::string>* vars) override {return 0;};
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override { return 0; }
+        int initcheck(set<string>* vars) override {return 0;};
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     class Actuals : public Seq<Expr> {
@@ -504,14 +508,14 @@ namespace AST {
     public:
         explicit Construct(Ident& method, Actuals& actuals) :
                 method_{method}, actuals_{actuals} {}
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
-        int initcheck(std::set<std::string>* vars) override {
+        string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override;
+        int initcheck(set<string>* vars) override {
             if (method_.initcheck(vars)) { return 1;}
             if (actuals_.initcheck(vars)) { return 1;}
             return 0;
         }
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     /* Method calls are central to type checking and code
@@ -525,8 +529,8 @@ namespace AST {
     public:
         explicit Call(Expr& receiver, Ident& method, Actuals& actuals) :
                 receiver_{receiver}, method_{method}, actuals_{actuals} {};
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
-        int initcheck(std::set<std::string>* vars) override {
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
+        int initcheck(set<string>* vars) override {
             if (receiver_.initcheck(vars)) { return 1;}
             if (method_.initcheck(vars)) { return 1;}
             if (actuals_.initcheck(vars)) { return 1;}
@@ -534,9 +538,9 @@ namespace AST {
         }
         // Convenience factory for the special case of a method
         // created for a binary operator (+, -, etc).
-        static Call* binop(std::string opname, Expr& receiver, Expr& arg);
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        static Call* binop(string opname, Expr& receiver, Expr& arg);
+        string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override;
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     // Virtual base class for binary operations.
@@ -545,23 +549,23 @@ namespace AST {
     // Does include And, Or, Dot, ...
    class BinOp : public Expr {
     protected:
-        std::string opsym;
+        string opsym;
         ASTNode &left_;
         ASTNode &right_;
-        BinOp(std::string sym, ASTNode &l, ASTNode &r) :
+        BinOp(string sym, ASTNode &l, ASTNode &r) :
                 opsym{sym}, left_{l}, right_{r} {};
     public:
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
    class And : public BinOp {
    public:
        explicit And(ASTNode& left, ASTNode& right) :
           BinOp("And", left, right) {}
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
+        string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "Boolean";
         }
-        int initcheck(std::set<std::string>* vars) override {
+        int initcheck(set<string>* vars) override {
             if (left_.initcheck(vars)) { return 1;}
             if (right_.initcheck(vars)) { return 1;}
             return 0;
@@ -572,10 +576,10 @@ namespace AST {
     public:
         explicit Or(ASTNode& left, ASTNode& right) :
                 BinOp("Or", left, right) {}
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
+        string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "Boolean";
         }
-        int initcheck(std::set<std::string>* vars) override {
+        int initcheck(set<string>* vars) override {
             if (left_.initcheck(vars)) { return 1;}
             if (right_.initcheck(vars)) { return 1;}
             return 0;
@@ -587,14 +591,14 @@ namespace AST {
     public:
         explicit Not(ASTNode& left ):
             left_{left}  {}
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override {
+        string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "Boolean";
         }
-        int initcheck(std::set<std::string>* vars) override {
+        int initcheck(set<string>* vars) override {
             if (left_.initcheck(vars)) { return 1;}
             return 0;
         }
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     /* Can a field de-reference (expr . IDENT) be a binary
@@ -607,24 +611,24 @@ namespace AST {
         Expr& left_;
         Ident& right_;
     public:
-        std::string get_var() override {return left_.get_var() + "." + right_.get_var();}
-        void collect_vars(std::map<std::string, std::string>* vt) override { return; }
-        std::string get_type(std::map<std::string, std::string>* vt, StaticSemantics* ssc, std::string classname) override;
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override { 
+        string get_var() override {return left_.get_var() + "." + right_.get_var();}
+        void collect_vars(map<string, string>* vt) override { return; }
+        string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override { 
             left_.type_infer(ssc, vt, info); 
             right_.type_infer(ssc, vt, info);
             return 0;
         }
-        int initcheck(std::set<std::string>* vars) override {
+        int initcheck(set<string>* vars) override {
             if (!vars->count(get_var())) { // not 0 would be 1, indicating failure
-                std::cout << "INIT ERROR: var " << get_var() << " used before initialized" << std::endl;
+                cout << "INIT ERROR: var " << get_var() << " used before initialized" << endl;
                 return 1;
             } 
             return 0;
         }
         explicit Dot (Expr& left, Ident& right) :
            left_{left},  right_{right} {}
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 
     /* A program has a set of classes (in any order) and a block of
@@ -636,11 +640,11 @@ namespace AST {
         Block& statements_;
         explicit Program(Classes& classes, Block& statements) :
                 classes_{classes}, statements_{statements} {}
-        int type_infer(StaticSemantics* ssc, std::map<std::string, std::string>* vt, class_and_method* info) override;
-        std::string get_var() override {return "";}
-        int initcheck(std::set<std::string>* vars, StaticSemantics* ssc);
-        void collect_vars(std::map<std::string, std::string>* vt) override {return;}
-        void json(std::ostream& out, AST_print_context& ctx) override;
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
+        string get_var() override {return "";}
+        int initcheck(set<string>* vars, StaticSemantics* ssc);
+        void collect_vars(map<string, string>* vt) override {return;}
+        void json(ostream& out, AST_print_context& ctx) override;
     };
 }
 #endif //ASTNODE_H

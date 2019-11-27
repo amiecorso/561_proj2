@@ -35,7 +35,7 @@ class MethodTable {
             }
             cout << endl;
             cout << "\t" << "variables: " << endl;
-            for(std::map<string, string>::iterator iter = vars->begin(); iter != vars->end(); ++iter) {
+            for(map<string, string>::iterator iter = vars->begin(); iter != vars->end(); ++iter) {
                 cout << "\t\t" << iter->first << ":" << iter->second << endl;
             }
             cout << endl;
@@ -123,7 +123,7 @@ class StaticSemantics {
             }
             for(map<string,TypeNode>::iterator iter = hierarchy.begin(); iter != hierarchy.end(); ++iter) {
                 TypeNode node = iter->second;
-                std::string parent = node.parent;
+                string parent = node.parent;
                 if (iter->first == "Obj") {
                     continue;
                 }
@@ -137,7 +137,7 @@ class StaticSemantics {
             for(map<string,Edge*>::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
                 cout << "GRAPH EDGES: " << endl;
                 cout << iter->first << ": ";
-                for(std::string child: iter->second->children) {
+                for(string child: iter->second->children) {
                     cout << child << ", ";
                 }
                 cout << endl << endl;
@@ -319,12 +319,12 @@ class StaticSemantics {
         /*
         COPIED FROM INTERNET
         */
-        std::vector<std::string> split(std::string strToSplit, char delimeter)
+        vector<string> split(string strToSplit, char delimeter)
         {
-            std::stringstream ss(strToSplit);
-            std::string item;
-            std::vector<std::string> splittedStrings;
-            while (std::getline(ss, item, delimeter))
+            stringstream ss(strToSplit);
+            string item;
+            vector<string> splittedStrings;
+            while (getline(ss, item, delimeter))
             {
             splittedStrings.push_back(item);
             }
@@ -396,7 +396,7 @@ class StaticSemantics {
             AST::Program *root = (AST::Program*) astroot;
             set<string> *vars = new set<string>;
             if (root->initcheck(vars, this)) { 
-                std::cout << "INITIALIZATION ERRORS" << std::endl;
+                cout << "INITIALIZATION ERRORS" << endl;
                 return nullptr;
             }
             typeCheck();
