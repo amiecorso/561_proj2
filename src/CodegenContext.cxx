@@ -88,3 +88,11 @@ string Context::get_local_var(string &ident) {
 string Context::new_branch_label(const char* prefix) {
     return string(prefix) + "_" + to_string(++next_label_num);
 }
+
+void Context::emit_instance_vars() {
+    TypeNode classnode = ssc->hierarchy[classname];
+    map<string, string> instancevars = classnode.instance_vars;
+    for (map<string, string>::iterator iter = instancevars.begin(); iter != instancevars.end(); ++iter) {
+        emit("\tobj_" + iter->second + " " + iter->first + ";");
+    }
+}

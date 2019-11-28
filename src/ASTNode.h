@@ -350,6 +350,9 @@ namespace AST {
         LExpr &loc_;
     public:
         Load(LExpr &loc) : loc_{loc} {}
+        void genR(Context *con, string targreg) override {
+            cout << "Load::GenR unimp" << endl;
+        }
         string get_var() override {return loc_.get_var();}
         void collect_vars(map<string, string>* vt) override {return;}
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
@@ -437,6 +440,34 @@ namespace AST {
             Ident& super_;
             ASTNode& constructor_;
             Methods& methods_;
+
+            void genR(Context *con, string targreg) override {
+                string classname = name_.get_var();
+                con->emit("struct class_" + classname + "_struct;");
+                con->emit("typedef struct class_" + classname + "_struct* class_" + classname + ";");
+                con->emit("");
+                con->emit("typedef struct obj_" + classname + "_struct {");
+                con->emit("\tclass_" + classname + " clazz;");
+                con->emit_instance_vars();
+                con->emit("} * obj_" + classname + ";");
+                con->emit("");
+                con->emit("struct class_" + classname + "_struct the_class_" + classname + "_struct;");
+                con->emit("");
+                con->emit("struct class_" + classname + "_struct {");
+                // methods! return types, method names, formal arg types (need to populate in hierarchy?)
+                /*
+                        struct class_Pt_struct {
+                        obj_Pt (*constructor) (obj_Int, obj_Int );  
+                        obj_String (*STRING) (obj_Obj);           // inherit
+                        obj_Pt (*PRINT) (obj_Pt);                 // overridden
+                        obj_Boolean (*EQUALS) (obj_Obj, obj_Obj); // inherit
+                        obj_Pt (*PLUS) (obj_Pt, obj_Pt);          // introduced
+                        };
+
+                        extern class_Pt the_class_Pt;
+
+                */
+            }
 
             explicit Class(Ident& name, Ident& super,
                     ASTNode& constructor, Methods& methods) :

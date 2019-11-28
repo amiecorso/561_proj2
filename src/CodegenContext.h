@@ -32,6 +32,7 @@ public:
     string get_local_var(string &ident);
     string get_type(AST::ASTNode& node);
     string new_branch_label(const char* prefix);
+    void emit_instance_vars();
 };
 
 #endif //AST_CODEGENCONTEXT_H
