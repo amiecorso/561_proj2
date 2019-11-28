@@ -301,10 +301,12 @@ namespace AST {
         ASTNode &rexpr_;
     public:
         void genR(Context *con, string targreg) override {
-            std::string loc = lexpr_.genL(con);
-            rexpr_.genR(con, targreg);
+            string type = con->get_type(lexpr_);
+            string reg = con->alloc_reg(type);
+            string loc = lexpr_.genL(con);
+            rexpr_.genR(con, reg);
             /* Store the value in the location */
-            con->emit(loc + " = " + targreg + ";");
+            con->emit(loc + " = " + reg + ";");
         }
         void collect_vars(map<string, string>* vt) override {
             string var_name = lexpr_.get_var();
@@ -472,7 +474,7 @@ namespace AST {
         int value_;
     public:
         void genR(Context *con, string targreg) override {
-            con->emit("int_literal(" + to_string(value_) + ");");
+            con->emit(targreg + " = int_literal(" + to_string(value_) + ");");
         }
         explicit IntConst(int v) : value_{v} {}
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
@@ -516,7 +518,7 @@ namespace AST {
         string value_;
     public:
         void genR(Context *con, string targreg) override {
-            con->emit("str_literal(" + value_ + ");");
+            con->emit(targreg + " = str_literal(" + value_ + ");");
         }
         explicit StrConst(string v) : value_{v} {}
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
@@ -530,6 +532,23 @@ namespace AST {
     class Actuals : public Seq<Expr> {
     public:
         explicit Actuals() : Seq("Actuals") {}
+        string genL(Context *con) override {
+            vector<string> actualregs = vector<string>();
+            for (ASTNode *actual: elements_) {
+                string type = con->get_type(*actual);
+                string reg = con->alloc_reg(type);
+                actualregs.push_back(reg);
+                actual->genR(con, reg);
+            }
+            string actuals = "";
+            for (string reg: actualregs) {
+                actuals += reg;
+                actuals += ", ";
+            }
+            int strlen = actuals.length();
+            actuals = actuals.erase(strlen - 2, 2); // erase the final ", "
+            return actuals;
+        }
     };
 
     /* Constructors are different from other method calls. They
@@ -561,6 +580,18 @@ namespace AST {
         Ident& method_;         /* Identifier of the method */
         Actuals& actuals_;     /* List of actual arguments */
     public:
+        void genR(Context *con, string targreg) override {
+            //obj_Int x_sum = this_x->clazz->PLUS(this_x, other_x); 
+            // names of actual arguments?
+                // what if actual arguments are themselves expressions?
+            string methodname = method_.get_var();
+            string recvtype = con->get_type(receiver_);
+            string recvreg = con->alloc_reg(recvtype);
+            receiver_.genR(con, recvreg);
+            string actuals = actuals_.genL(con);
+            con->emit(targreg + " = " + recvreg + "->clazz->" + methodname + "(" + recvreg + ", " + actuals + ");");
+        }
+
         explicit Call(Expr& receiver, Ident& method, Actuals& actuals) :
                 receiver_{receiver}, method_{method}, actuals_{actuals} {};
         int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;

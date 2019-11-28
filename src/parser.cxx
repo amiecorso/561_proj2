@@ -50,7 +50,7 @@ void generate_code(AST::ASTNode *root, StaticSemantics* ssc) {
     ctx.emit("#include <stdio.h>");
     ctx.emit("int main(int argc, char **argv) {");
     // Body of generated code
-    std::string target = ctx.alloc_reg();
+    std::string target = ctx.alloc_reg("Obj");
     astroot->genR(&ctx, target);
     // Coda
     //ctx.emit(std::string(R"(printf("-> %d\n",)")

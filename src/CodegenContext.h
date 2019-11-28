@@ -8,6 +8,7 @@
 using namespace std;
 
 class StaticSemantics;
+namespace AST {class ASTNode; }
 
 class Context {
     int next_reg_num = 0;
@@ -24,12 +25,12 @@ public:
 
     void emit(string s);
 
-    string alloc_reg();
+    string alloc_reg(string type);
 
     void free_reg(string reg);
 
     string get_local_var(string &ident);
-
+    string get_type(AST::ASTNode& node);
     string new_branch_label(const char* prefix);
 };
 

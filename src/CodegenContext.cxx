@@ -3,18 +3,19 @@
 #include <map>
 #include "CodegenContext.h"
 #include "staticsemantics.cxx"
+#include "ASTNode.h"
 
 using namespace std;
 
-void Context::emit(string s) { object_code << " " << s  << endl; }
+void Context::emit(string s) { object_code << s  << endl; }
 
 /* Getting the name of a "register" (really a local variable in C)
     * has the side effect of emitting a declaration for the variable.
     */
-string Context::alloc_reg() {
+string Context::alloc_reg(string type) {
     int reg_num = next_reg_num++;
-    string reg_name = "tmp__" + to_string(reg_num);
-    object_code << "int " << reg_name << ";" << endl;
+    string reg_name = "reg__" + to_string(reg_num);
+    object_code << "obj_" << type << " " << reg_name << ";" << endl;
     return reg_name;
 }
 
@@ -26,7 +27,29 @@ void Context::free_reg(string reg) {
     * Possible side effect of generating a declaration if
     * the variable has not been mentioned before.  (Later,
     * we should buffer up the program to avoid this.)
-    */
+    */    
+
+string Context::get_type(AST::ASTNode& node) {
+       TypeNode classnode = ssc->hierarchy[classname];
+        MethodTable methodt;
+        map<string, string>* vars;
+        if (methodname == "constructor") {
+            methodt = classnode.construct;
+            vars = methodt.vars;
+        }
+        else {
+            if (methodname == "__pgm__") {
+                vars = &classnode.instance_vars;
+            }
+            else{ 
+                methodt = classnode.methods[methodname];
+                vars = methodt.vars;
+            }
+        }
+        string type = node.get_type(vars, ssc, classname);
+        return type;
+}
+
 string Context::get_local_var(string &ident) {
     if (local_vars.count(ident) == 0) {
         string internal = string("var_") + ident;
