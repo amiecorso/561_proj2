@@ -1,6 +1,4 @@
-class Hand() {
-      /* Nothing to see here */
-}
+
 
 
 class LeftHand(x: Int) extends Hand {
@@ -13,7 +11,11 @@ class RightHand(x: Int) extends Hand {
       def foo(): Int { return 42; }
 }
 
-class Bot(x: Int) {
+class Hand() {
+      /* Nothing to see here */
+}
+
+class Bot(x: Int) extends Hand {
    if x > 0 {
       this.hand = LeftHand(3);
    } else {

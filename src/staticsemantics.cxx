@@ -49,11 +49,13 @@ class TypeNode {
         map<string, string> instance_vars;
         map<string, MethodTable> methods;
         MethodTable construct;
+        int resolved;
 
         TypeNode() {
             instance_vars = map<string, string>();
             methods = map<string, MethodTable>();
             construct = MethodTable();
+            resolved = 0;
         }
 
         TypeNode(string name) {
@@ -62,6 +64,7 @@ class TypeNode {
             methods = map<string, MethodTable>();
             construct = MethodTable(name);
             construct.returntype = name;
+            resolved = 0;
         }
 
         void print() {
@@ -107,14 +110,33 @@ class StaticSemantics {
         int found_error;
         map<string, TypeNode> hierarchy;
         map<string, Edge*> edges;
+        vector<string> sortedclasses;
 
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
             astroot = root;
             found_error = 0;
             hierarchy = map<string, TypeNode>();
             edges = map<string, Edge*>();
+            sortedclasses = vector<string>();
+
         }
         // TODO: create destructor?
+        void toposort() {
+            sortedclasses.push_back("Obj");
+            for(map<string,TypeNode>::iterator iter = hierarchy.begin(); iter != hierarchy.end(); ++iter) {
+                TypeNode *node = &hierarchy[iter->first]; // get node directly from map
+                toposort_aux(node);
+            }
+        }
+        void toposort_aux(TypeNode* node) {
+            if (!node->resolved) {
+                string parent = node->parent;
+                TypeNode* pp = &hierarchy[parent];
+                toposort_aux(pp);
+                sortedclasses.push_back(node->type);
+                node->resolved = 1;
+            }
+        }
 
         int populateEdges() {
             for(map<string,TypeNode>::iterator iter = hierarchy.begin(); iter != hierarchy.end(); ++iter) {
@@ -349,6 +371,7 @@ class StaticSemantics {
 
             TypeNode obj("Obj");
             obj.parent = "TYPE_ERROR";
+            obj.resolved = 1;
             hierarchy["Obj"] = obj;
             MethodTable objprint("PRINT");
             objprint.returntype = "Nothing";
@@ -393,6 +416,7 @@ class StaticSemantics {
             else {
                 cout << "GRAPH ACYCLIC" << endl;
             }
+            toposort();
             AST::Program *root = (AST::Program*) astroot;
             set<string> *vars = new set<string>;
             if (root->initcheck(vars, this)) { 

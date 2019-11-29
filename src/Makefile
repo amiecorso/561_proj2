@@ -38,7 +38,7 @@ lex.yy.cxx lex.yy.h:  quack.lxx
 quack.tab.cxx quack.tab.hxx location.hh position.hh stack.hh: quack.yxx
 	$(BISON) --defines --debug --token-table --report=all $<
 
-%.o: %.cxx ASTNode.h CodegenContext.h
+%.o: %.cxx ASTNode.h CodegenContext.h staticsemantics.cxx
 	$(CC) -c $^
 
 scanner: scanner.o lex.yy.o
