@@ -49,6 +49,7 @@ namespace AST {
     public:
         virtual string genL(Context *con) {cout << "GENL UNIMP" << endl; return "";}
         virtual void genR(Context *con, string targreg) {cout << "GENR UNIMPLLLL" << endl;}
+        virtual void genBranch(Context *con, string true_branch, string false_branch) { cout << "GENBRANCH UNIMP" << endl; }
         virtual void collect_vars(map<string, string>* vt) {cout << "UNIMPLEMENTED COLLECT_VARS" << endl;};
         virtual string get_var() {cout << "UNIMPLEMENTED GET_VAR" << endl; return "";};
         virtual string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) {
@@ -386,6 +387,28 @@ namespace AST {
         Seq<ASTNode> &truepart_; // Execute this block if the condition is true
         Seq<ASTNode> &falsepart_; // Execute this block if the condition is false
     public:
+
+
+        /* IF is a statement that executes either its true branch
+        * or its false branch.  The value it places into the target
+        * should be the value of whichever branch is taken.
+        */
+        void genR(Context* con, string targreg) override {
+            std::string thenpart = con->new_branch_label("then");
+            std::string elsepart = con->new_branch_label("else");
+            std::string endpart = con->new_branch_label("endif");
+            cond_.genBranch(con, thenpart, elsepart);
+            /* Generate the 'then' part here */
+            con->emit(thenpart + ": ;");
+            truepart_.genR(con, targreg);
+            con->emit(std::string("goto ") + endpart + ";");
+            /* Generate the 'else' part here */
+            con->emit(elsepart + ": ;");
+            falsepart_.genR(con, targreg);
+            /* That's all, folks */
+            con->emit(endpart + ": ;");
+        }
+
         explicit If(ASTNode& cond, Seq<ASTNode>& truepart, Seq<ASTNode>& falsepart) :
             cond_{cond}, truepart_{truepart}, falsepart_{falsepart} { };
         int initcheck(set<string>* vars) override {
@@ -411,6 +434,19 @@ namespace AST {
     public:
         explicit While(ASTNode& cond, Block& body) :
             cond_{cond}, body_{body} { };
+
+        void genR(Context* con, string targreg) override {
+            string checkpart = con->new_branch_label("check_cond");
+            string looppart = con->new_branch_label("loop");
+            string endpart = con->new_branch_label("endwhile");
+            con->emit(checkpart + ": ;");
+            cond_.genBranch(con, looppart, endpart);
+            con->emit(looppart + ": ;");
+            body_.genR(con, targreg);
+            con->emit("goto " + checkpart + ";");
+            con->emit(endpart + ": ;");
+        }
+
         int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
             cout << "ENTERING While::type_infer" << endl;
             string cond_type = cond_.get_type(vt, ssc, info->classname);
@@ -611,6 +647,15 @@ namespace AST {
         Ident& method_;         /* Identifier of the method */
         Actuals& actuals_;     /* List of actual arguments */
     public:
+        void genBranch(Context *con, string true_branch, string false_branch) override {
+            // At present, we don't have 'and' and 'or'
+            string mytype = con->get_type(*this);
+            string reg = con->alloc_reg(mytype);
+            genR(con, reg);
+            con->emit(string("if (") + reg + ") goto " + true_branch + ";");
+            con->emit(string("goto ") + false_branch + ";");
+            con->free_reg(reg);
+        }
         void genR(Context *con, string targreg) override {
             //obj_Int x_sum = this_x->clazz->PLUS(this_x, other_x); 
             // names of actual arguments?

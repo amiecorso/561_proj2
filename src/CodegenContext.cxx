@@ -79,12 +79,6 @@ string Context::get_local_var(string &ident) {
     return local_vars[ident];
 }
 
-/* Get a new, unique branch label.  We use a prefix
-    * string just to make the object code a little more
-    * readable by indicating what the label was for
-    * (e.g., distinguishing the 'else' branch from the 'endif'
-    * branch).
-    */
 string Context::new_branch_label(const char* prefix) {
     return string(prefix) + "_" + to_string(++next_label_num);
 }
