@@ -131,6 +131,7 @@ class StaticSemantics {
 
         }
         // TODO: create destructor?
+
         void toposort() {
             sortedclasses.push_back("Obj");
             for(map<string,TypeNode>::iterator iter = hierarchy.begin(); iter != hierarchy.end(); ++iter) {
@@ -165,16 +166,6 @@ class StaticSemantics {
                 }
                 edges[node.parent]->children.push_back(node.type);
             }
-            /*
-            for(map<string,Edge*>::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
-                cout << "GRAPH EDGES: " << endl;
-                cout << iter->first << ": ";
-                for(string child: iter->second->children) {
-                    cout << child << ", ";
-                }
-                cout << endl << endl;
-            }
-            */
             return 1;
         }
 
@@ -266,52 +257,26 @@ class StaticSemantics {
         void inherit_methods() {
             for (string classname: sortedclasses) {
                 if (classname == "Obj") {continue;}
-                TypeNode classnode = hierarchy[classname];
-                map<string, MethodTable> classmethods = classnode.methods;
-                string parent = classnode.parent;
-                TypeNode parentnode = hierarchy[parent];
-                for (string meth: parentnode.methodlist) {
-                    classnode.methodlist.push_back(meth);
+                if (classname == "__pgm__") {continue;}
+                TypeNode *classnode = &hierarchy[classname];
+                map<string, MethodTable> *classmethods = &classnode->methods;
+                string parent = classnode->parent;
+                TypeNode *parentnode = &hierarchy[parent];
+                for (string meth: parentnode->methodlist) {
+                    classnode->methodlist.push_back(meth);
                 }
-                for (map<string, MethodTable>::iterator iter = classmethods.begin(); iter != classmethods.end(); ++iter) {
-                    if (!search_vector(&classnode.methodlist, iter->first)) {
-                        classnode.methodlist.push_back(iter->first);
+                for (map<string, MethodTable>::iterator iter = classmethods->begin(); iter != classmethods->end(); ++iter) {
+                    if (!search_vector(&classnode->methodlist, iter->first)) {
+                        classnode->methodlist.push_back(iter->first);
                     }
                 }
-                for (string s: classnode.methodlist) {
-                    if (!classmethods.count(s)) {
-                        MethodTable parentmethod = parentnode.methods[s];
+                for (string s: classnode->methodlist) {
+                    if (!classmethods->count(s)) {
+                        MethodTable parentmethod = parentnode->methods[s];
                         MethodTable mt = MethodTable(parentmethod);
-                        classmethods[s] = mt;
+                        (*classmethods)[s] = mt;
                     }
                 }
-            }
-        }
-
-        void copy_instance_vars(string classname) { // copy class instance vars into method tables
-            cout << "ENTERING ssc::copy_instance_vars WTFFFFFFFFF" << endl;
-            TypeNode classtable = hierarchy[classname];
-            //cout << "\tgot classtable:" << endl;
-            //classtable.print();
-            map<string, string> instancevars = classtable.instance_vars;
-            cout << "\t got instancevars: " << endl;
-            for(map<string, string>::iterator iviter = instancevars.begin(); iviter != instancevars.end(); ++iviter) {
-                cout << iviter->first << " : " << iviter->second << endl;
-            }
-            map<string, MethodTable> methods = classtable.methods;
-            for(map<string, MethodTable>::iterator miter = methods.begin(); miter != methods.end(); ++miter) {
-                MethodTable mt = miter->second;
-                cout << "\t got methodtable:" << endl;
-                mt.print();
-                map<string, string>* methodvars = mt.vars;
-                //(miter->second).vars = map<string, string>(instancevars);
-                //cout << "\tassigning: " << endl;
-                for(map<string, string>::iterator iviter = instancevars.begin(); iviter != instancevars.end(); ++iviter) {
-                    //cout << iviter->first << " : " << iviter->second << endl;
-                    (*methodvars)[iviter->first] = iviter->second;
-                }
-                cout << "\t after assignment: ---------" << endl;
-                mt.print();
             }
         }
 
@@ -335,9 +300,6 @@ class StaticSemantics {
         }
 
         string get_LCA(string type1, string type2) {
-            cout << "ENTERING: ssc::get_LCA"  << endl;
-            cout << "\t type1: " << type1 << endl;
-            cout << "\t type2: " << type2 << endl;
             // TODO: this section is garbage and shouldn't be necessary when rest is working
             if (type1 == "Bottom") { return type2;}
             if (type2 == "Bottom") { return type1;}
@@ -378,10 +340,6 @@ class StaticSemantics {
             return 1;
         }
 
-
-        /*
-        COPIED FROM INTERNET
-        */
         vector<string> split(string strToSplit, char delimeter)
         {
             stringstream ss(strToSplit);
@@ -404,8 +362,7 @@ class StaticSemantics {
         } // end typeCheck
 
         void populateBuiltins() {
-            // Populate built-ins
-            // pseudo-class for program:
+            // pseudo-class for program: __pgm__
             TypeNode program("__pgm__");
             program.parent = "Obj";
             hierarchy["__pgm__"] = program;
@@ -427,7 +384,6 @@ class StaticSemantics {
                 obj.methodlist.push_back(iter->first);
             }
             hierarchy["Obj"] = obj;
-
 
             TypeNode integer("Int");
             integer.parent = "Obj";

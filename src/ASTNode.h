@@ -78,6 +78,10 @@ namespace AST {
     class Stub : public ASTNode {
         string name_;
     public:
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+            cout << "UNIMP TYPEINFER STUB" << endl;
+            return 0;
+        }
         explicit Stub(string name) : name_{name} {}
         void json(ostream& out, AST_print_context& ctx) override;
     };
@@ -115,7 +119,7 @@ namespace AST {
             return 0;
         }
         int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
-            cout << "ENTERING Seq::type_infer" << endl;
+            //cout << "ENTERING Seq::type_infer" << endl;
             info->print();
             int returnval = 0;
             for (Kind *el: elements_) {
@@ -179,6 +183,9 @@ namespace AST {
             string get_var() override {return text_;}
             void collect_vars(map<string, string>* vt) override {return;}
             string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override;
+            int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+                return 0;
+            }
             int initcheck(set<string>* vars) override {
                 if (!vars->count(text_)) { // not 0 would be 1, indicating failure
                     cout << "INIT ERROR: var " << text_ << " used before initialized" << endl;
@@ -198,7 +205,7 @@ namespace AST {
     public:
         explicit Block() : Seq("Block") {}
         int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
-            cout << "ENTERING: Block::type_infer" << endl;
+            //cout << "ENTERING: Block::type_infer" << endl;
             info->print();
             int returnval = 0;
             for (ASTNode *stmt: elements_) {
@@ -220,7 +227,7 @@ namespace AST {
             explicit Formal(ASTNode& var, ASTNode& type_) :
                 var_{var}, type_{type_} {};
             int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
-                cout << "ENTERING Formal:type_infer" << endl;
+                //cout << "ENTERING Formal:type_infer" << endl;
                 string var = var_.get_var();
                 string type = type_.get_var();
                 (*vt)[var] = type;
@@ -239,14 +246,6 @@ namespace AST {
     class Formals : public Seq<Formal> {
     public:
         explicit Formals() : Seq("Formals") {}
-        /* Let's have Seq take care of this
-        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
-            cout << "ENTERING Formals:type_infer" << endl;
-            for (ASTNode *formal: elements_) {
-                formal->type_infer(ssc, vt, info);
-            }
-        }
-        */
     };
 
     class Method : public ASTNode {
@@ -259,7 +258,7 @@ namespace AST {
             explicit Method(ASTNode& name, Formals& formals, ASTNode& returns, Block& statements) :
             name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
             int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
-                cout << "ENTERING Method::type_infer for method " << name_.get_var() << endl;
+                //cout << "ENTERING Method::type_infer for method " << name_.get_var() << endl;
                 int returnval = 0;
                 int freturn = formals_.type_infer(ssc, vt, info);
                 int sreturn = statements_.type_infer(ssc, vt, info);
@@ -291,9 +290,6 @@ namespace AST {
      */
 
     class Statement : public ASTNode { 
-        public:
-            string get_var() override {return "";}
-            void collect_vars(map<string, string>* vt) override {return;}
     };
 
     class Assign : public Statement {
@@ -357,8 +353,7 @@ namespace AST {
         string get_var() override {return loc_.get_var();}
         void collect_vars(map<string, string>* vt) override {return;}
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
-            cout << "ENTERING Load::get_type" << endl;
-            cout << "loc_ is type: " << typeid(loc_).name() << endl;
+            //cout << "ENTERING Load::get_type" << endl;
             string result = loc_.get_type(vt, ssc, classname);
             return result;
         }
@@ -448,7 +443,7 @@ namespace AST {
         }
 
         int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
-            cout << "ENTERING While::type_infer" << endl;
+            //cout << "ENTERING While::type_infer" << endl;
             string cond_type = cond_.get_type(vt, ssc, info->classname);
             if (cond_type != "Boolean") {
                 cout << "TypeError (While): Condition does not evaluate to type Boolean (ignoring statements)" << endl;
@@ -706,6 +701,10 @@ namespace AST {
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "Boolean";
         }
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+            cout << "UNIMP TYPEINFER AND" << endl;
+            return 0;
+        }
         int initcheck(set<string>* vars) override {
             if (left_.initcheck(vars)) { return 1;}
             if (right_.initcheck(vars)) { return 1;}
@@ -719,6 +718,10 @@ namespace AST {
                 BinOp("Or", left, right) {}
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "Boolean";
+        }
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+            cout << "UNIMP TYPEINFER OR" << endl;
+            return 0;
         }
         int initcheck(set<string>* vars) override {
             if (left_.initcheck(vars)) { return 1;}
@@ -734,6 +737,10 @@ namespace AST {
             left_{left}  {}
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override {
             return "Boolean";
+        }
+        int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
+            cout << "UNIMP TYPEINFER NOT" << endl;
+            return 0;
         }
         int initcheck(set<string>* vars) override {
             if (left_.initcheck(vars)) { return 1;}

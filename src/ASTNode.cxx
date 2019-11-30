@@ -55,7 +55,7 @@ namespace AST {
     }
 
     int Construct::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) { 
-        cout << "ENTERING Construct::type_infer" << endl;
+        //cout << "ENTERING Construct::type_infer" << endl;
         // recursive call to type-check actual args
         actuals_.type_infer(ssc, vt, info);
         // verify that the construct call matches signature
@@ -72,7 +72,6 @@ namespace AST {
         for (int i = 0; i < actuals_.elements_.size(); i++) {
             string formaltype = constructortable.formalargtypes[i];
             string actualtype = actuals_.elements_[i]->get_type(vt, ssc, info->classname);
-            //cout << "Formal type: " << formaltype << "||" << "Actual type: " << actualtype << endl;
             if (!ssc->is_subtype(actualtype, formaltype)) {
                 cout << "Error (Construct): actual args do not match method signature for constructor call: "
                                         << methodname << "(...)" << endl;
@@ -83,7 +82,7 @@ namespace AST {
     }
 
     int If::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) {
-        cout << "ENTERING If::type_infer" << endl;
+        //cout << "ENTERING If::type_infer" << endl;
         string cond_type = cond_.get_type(vt, ssc, info->classname);
         if (cond_type != "Boolean") {
             cout << "TypeError (If): Condition does not evaluate to type Boolean (ignoring statements)" << endl;
@@ -129,7 +128,6 @@ namespace AST {
         for (int i = 0; i < actuals_.elements_.size(); i++) {
             string formaltype = methodtable.formalargtypes[i];
             string actualtype = actuals_.elements_[i]->get_type(vt, ssc, info->classname);
-            cout << "Formal type: " << formaltype << "||" << "Actual type: " << actualtype << endl;
             if (!ssc->is_subtype(actualtype, formaltype)) {
                 cout << "Error (Call): actual args do not conform to method signature for call: " << 
                                         receiver_.get_var() << "." << methodname << "(...)" << endl;
@@ -140,7 +138,7 @@ namespace AST {
     }
 
     int AssignDeclare::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info)  {
-        cout << "ENTERING: AssignDeclare::type_infer" << endl;
+        //cout << "ENTERING: AssignDeclare::type_infer" << endl;
         int returnval = 0;        
         lexpr_.type_infer(ssc, vt, info);
         rexpr_.type_infer(ssc, vt, info);
@@ -173,7 +171,7 @@ namespace AST {
     }
 
     int Assign::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info)  {
-        cout << "ENTERING: Assign::type_infer" << endl;
+        //cout << "ENTERING: Assign::type_infer" << endl;
         int returnval = 0;
         lexpr_.type_infer(ssc, vt, info);
         rexpr_.type_infer(ssc, vt, info);
@@ -200,7 +198,7 @@ namespace AST {
     }
 
     int Methods::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) {
-        cout << "ENTERING: Methods::type_infer" << endl;
+        //cout << "ENTERING: Methods::type_infer" << endl;
         int returnval = 0;
         for (Method* method: elements_) {
             string methodname = method->name_.get_var();
@@ -274,7 +272,7 @@ namespace AST {
 
     int Class::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) {
             int returnval = 0;
-            cout << "ENTERING Class::type_infer" << endl;
+            //cout << "ENTERING Class::type_infer" << endl;
             info->print();
             map<string, string>* classinstancevars = &(ssc->hierarchy[info->classname].instance_vars);
             map<string, string>* construct_instvars = ssc->hierarchy[info->classname].construct.vars;
@@ -301,7 +299,7 @@ namespace AST {
     }
 
     int Return::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) {
-        cout << "ENTERING Return::type_infer" << endl;
+        //cout << "ENTERING Return::type_infer" << endl;
         string methodname = info->methodname;
         TypeNode classnode = ssc->hierarchy[info->classname];
         MethodTable methodtable = classnode.methods[methodname];
@@ -313,7 +311,7 @@ namespace AST {
         return 0;
     }
     string Construct::get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) {
-        cout << "ENTERING Construct::get_type" << endl;
+        //cout << "ENTERING Construct::get_type" << endl;
         string methodname = method_.get_var();
        // verify that the construct call matches signature
         map<string, TypeNode> hierarchy = ssc->hierarchy;
@@ -339,7 +337,7 @@ namespace AST {
 
 
     string Call::get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) {
-            cout << "ENTERING Call::get_type" << endl;
+            //cout << "ENTERING Call::get_type" << endl;
             string classtype = receiver_.get_type(vt, ssc, classname);
             string methodname = method_.get_var();
             map<string, TypeNode> hierarchy = ssc->hierarchy;
@@ -360,7 +358,6 @@ namespace AST {
             for (int i = 0; i < actuals_.elements_.size(); i++) {
                 string formaltype = methodnode.formalargtypes[i];
                 string actualtype = actuals_.elements_[i]->get_type(vt, ssc, classname);
-                cout << "Formal type: " << formaltype << "||" << "Actual type: " << actualtype << endl;
                 if (!ssc->is_subtype(actualtype, formaltype)) {
                     cout << "Error (Call): actual args do not conform to method signature for call: " << 
                                             receiver_.get_var() << "." << methodname << "(...)" << endl;
@@ -369,7 +366,7 @@ namespace AST {
             }
             return methodnode.returntype;
     }
-
+    
     string Ident::get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) {
         //cout << "ENTERING: Ident::get_type" << endl;
         if (text_ == "this") {
@@ -388,24 +385,10 @@ namespace AST {
     }
 
     string Dot::get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) {
-        cout << "ENTERING Dot::get_type" << endl;
-        /*
-        string lhs_id = left_.get_var();
-        map<string, TypeNode> hierarchy = ssc->hierarchy;
-        TypeNode classnode = hierarchy[classname];
-        map<string, string> instancevars = classnode.instance_vars;
-        if (instancevars.count(lhs_id)) {
-            return instancevars[lhs_id];
-        }
-        return "TypeError";
-        */
+        //cout << "ENTERING Dot::get_type" << endl;
         string rhs_id = right_.get_var();
         string lhs_id = left_.get_var();
         string lhs_type = left_.get_type(vt, ssc, classname);
-        cout << "-------  rhs_id: " << rhs_id << endl;
-        cout << "-------  lhs_id: " << lhs_id << endl;
-        cout << "-------  lhs_type: " << lhs_type << endl;
-        cout << "--------  class name: " << classname << endl;
         map<string, TypeNode> hierarchy = ssc->hierarchy;
         TypeNode classnode = hierarchy[lhs_type];
         map<string, string> instancevars = classnode.instance_vars;
