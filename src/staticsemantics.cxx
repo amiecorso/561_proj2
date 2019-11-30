@@ -14,6 +14,7 @@ class MethodTable {
         string returntype;
         vector<string> formalargtypes;
         map<string, string>* vars;
+        string inheritedfrom;
 
         MethodTable () {
             formalargtypes = vector<string>();
@@ -38,6 +39,7 @@ class MethodTable {
             for(map<string, string>::iterator iter = vars->begin(); iter != vars->end(); ++iter) {
                 cout << "\t\t" << iter->first << ":" << iter->second << endl;
             }
+            cout << "\t" << "inheritedfrom: " << inheritedfrom << endl;
             cout << endl;
         }
 };
@@ -50,12 +52,14 @@ class TypeNode {
         map<string, MethodTable> methods;
         MethodTable construct;
         int resolved;
+        vector<string> methodlist;
 
         TypeNode() {
             instance_vars = map<string, string>();
             methods = map<string, MethodTable>();
             construct = MethodTable();
             resolved = 0;
+            methodlist = vector<string>();
         }
 
         TypeNode(string name) {
@@ -65,6 +69,7 @@ class TypeNode {
             construct = MethodTable(name);
             construct.returntype = name;
             resolved = 0;
+            methodlist = vector<string>();
         }
 
         void print() {
@@ -74,6 +79,11 @@ class TypeNode {
             for(map<string, string>::iterator iter = instance_vars.begin(); iter != instance_vars.end(); ++iter) {
                 cout << "\t" << iter->first << ":" << iter->second << endl;
             }
+            cout << "MethodList: ";
+            for (string meth: methodlist) {
+                cout << meth << ", ";
+            }
+            cout << endl;
             cout << "Methods: " << endl;
             for(map<string, MethodTable>::iterator iter = methods.begin(); iter != methods.end(); ++iter) {
                 MethodTable method =  iter->second;
@@ -239,13 +249,44 @@ class StaticSemantics {
                         AST::Ident *type = (AST::Ident *) &(formal->type_);
                         newmethod.formalargtypes.push_back(type->text_);
                     }
+                    newmethod.inheritedfrom = classname;
                     node.methods[newmethod.methodname] = newmethod;
                 }
                 hierarchy[classname] = node; // finally, add node to table
 
             } // end for class in classes
-            cout << " *********************** CH BEFORE TYPE CHECKING *****************" << endl;
         } // end populateClassHierarchy
+
+        int search_vector(vector<string>* vec, string target) {
+            for (string s: *vec) {
+                if (s == target) { return 1; }
+            }
+            return 0;
+        }
+        void inherit_methods() {
+            for (string classname: sortedclasses) {
+                if (classname == "Obj") {continue;}
+                TypeNode classnode = hierarchy[classname];
+                map<string, MethodTable> classmethods = classnode.methods;
+                string parent = classnode.parent;
+                TypeNode parentnode = hierarchy[parent];
+                for (string meth: parentnode.methodlist) {
+                    classnode.methodlist.push_back(meth);
+                }
+                for (map<string, MethodTable>::iterator iter = classmethods.begin(); iter != classmethods.end(); ++iter) {
+                    if (!search_vector(&classnode.methodlist, iter->first)) {
+                        classnode.methodlist.push_back(iter->first);
+                    }
+                }
+                for (string s: classnode.methodlist) {
+                    if (!classmethods.count(s)) {
+                        MethodTable parentmethod = parentnode.methods[s];
+                        MethodTable mt = MethodTable(parentmethod);
+                        classmethods[s] = mt;
+                    }
+                }
+            }
+        }
 
         void copy_instance_vars(string classname) { // copy class instance vars into method tables
             cout << "ENTERING ssc::copy_instance_vars WTFFFFFFFFF" << endl;
@@ -371,21 +412,34 @@ class StaticSemantics {
 
             TypeNode obj("Obj");
             obj.parent = "TYPE_ERROR";
-            obj.resolved = 1;
-            hierarchy["Obj"] = obj;
             MethodTable objprint("PRINT");
             objprint.returntype = "Nothing";
-            hierarchy["Obj"].methods["PRINT"] = objprint;
+            obj.methods["PRINT"] = objprint;
+            MethodTable objstring("STRING");
+            objstring.returntype = "String";
+            obj.methods["STRING"] = objstring;
+            MethodTable objequals("EQUALS");
+            objequals.returntype = "Boolean";
+            obj.methods["EQUALS"] = objequals;
+            obj.resolved = 1;
+            for (map<string, MethodTable>::iterator iter = obj.methods.begin(); iter != obj.methods.end(); ++iter) {
+                obj.methods[iter->first].inheritedfrom = "Obj";
+                obj.methodlist.push_back(iter->first);
+            }
+            hierarchy["Obj"] = obj;
+
 
             TypeNode integer("Int");
             integer.parent = "Obj";
             hierarchy["Int"] = integer;
             MethodTable intplus("PLUS");
             intplus.returntype = "Int";
+            intplus.inheritedfrom = "Int";
             intplus.formalargtypes.push_back("Int");
             hierarchy["Int"].methods["PLUS"] = intplus;
             MethodTable intgreater(">");
             intgreater.returntype = "Boolean";
+            intgreater.inheritedfrom = "Int";
             intgreater.formalargtypes.push_back("Int");
             hierarchy["Int"].methods[">"] = intgreater;
 
@@ -403,6 +457,7 @@ class StaticSemantics {
 
         void* checkAST() { // top-level
             populateClassHierarchy();
+            cout << " *********************** CH BEFORE TYPE CHECKING *****************" << endl;
             printClassHierarchy();
 
             if (!populateEdges()) {
@@ -417,6 +472,9 @@ class StaticSemantics {
                 cout << "GRAPH ACYCLIC" << endl;
             }
             toposort();
+            inherit_methods();
+            cout << " *********************** CH AFTER INHERIT METHDOS *****************" << endl;
+            printClassHierarchy();
             AST::Program *root = (AST::Program*) astroot;
             set<string> *vars = new set<string>;
             if (root->initcheck(vars, this)) { 

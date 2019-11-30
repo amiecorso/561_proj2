@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
             StaticSemantics semanticChecker(root);
             semanticChecker.checkAST();
             AST::Program *astroot = (AST::Program*) root;
-            generate_code(astroot, &semanticChecker);
+            //generate_code(astroot, &semanticChecker);
         } else {
             std::cout << "No tree produced." << std::endl;
         }
