@@ -11,6 +11,24 @@ using namespace std;
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
+    void Method::genR(Context *con, string targreg) {
+        string methodname = name_.get_var();
+        TypeNode classnode = con->ssc->hierarchy[con->classname];
+        MethodTable mt = classnode.methods[methodname];
+        con->emit("");
+        if (con->classname == methodname) { // constructor
+            con->emit("obj_" + methodname + " new_" + methodname + "(" + con->get_formal_argtypes("constructor") + ") {");
+            con->emit("obj_" + methodname + " new_thing = (obj_" + methodname + ") malloc(sizeof(struct obj_" + methodname + "_struct));");
+            con->emit("new_thing->clazz = the_class_" + methodname + ";");
+        }
+        else { // not constructor
+            con->emit("obj_" + mt.returntype + " " + con->classname + "_method_" + methodname + "(" + con->get_formal_argtypes(methodname) + ") {");
+        }
+        statements_.genR(con, targreg);
+        con->emit("}");
+        con->emit("");
+    }
+
     int Program::initcheck(set<string>* vars, StaticSemantics* ssc) {
         for (map<string, TypeNode>::iterator iter = ssc->hierarchy.begin(); iter != ssc->hierarchy.end(); ++iter) {
             vars->insert(iter->first); // insert class name as constructor
@@ -366,7 +384,7 @@ namespace AST {
             }
             return methodnode.returntype;
     }
-    
+
     string Ident::get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) {
         //cout << "ENTERING: Ident::get_type" << endl;
         if (text_ == "this") {

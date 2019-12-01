@@ -1,4 +1,9 @@
  class Pt(x: Int, y: Int) {
-     this.x = x;
-     this.y = y;
+    this.x = x;
+    this.y = y;
+    
+    def translate(dx: Int, dy: Int): Nothing {
+     	this.x = this.x + dx;
+	    this.y = this.y + dy;
+    }
  }

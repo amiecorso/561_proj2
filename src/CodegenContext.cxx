@@ -87,7 +87,7 @@ void Context::emit_instance_vars() {
     TypeNode classnode = ssc->hierarchy[classname];
     map<string, string> instancevars = classnode.instance_vars;
     for (map<string, string>::iterator iter = instancevars.begin(); iter != instancevars.end(); ++iter) {
-        emit("\tobj_" + iter->second + " " + iter->first + ";");
+        emit("obj_" + iter->second + " " + iter->first + ";");
     }
 }
 
@@ -119,5 +119,19 @@ void Context::emit_method_sigs() {
         MethodTable mt = classnode.methods[method];
         emit("obj_" + mt.returntype + " (*" + method + ") (" + get_formal_argtypes(method) + ");");
     }
+}
+
+void Context::emit_the_class_struct() {
+    emit("struct  class_" + classname + "_struct  the_class_" + classname + "_struct = {");
+    TypeNode classnode = ssc->hierarchy[classname];
+    string output = "";
+    output += "new_" + classname;
+    for (string method: classnode.methodlist) {
+        output += ",\n";
+        MethodTable mt = classnode.methods[method];
+        output += mt.inheritedfrom + "_method_" + method;
+    }
+    emit(output);                
+    emit("};\n");
 }
 

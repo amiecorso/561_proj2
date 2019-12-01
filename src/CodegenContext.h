@@ -35,6 +35,7 @@ public:
     void emit_instance_vars();
     string get_formal_argtypes(string methodname);
     void emit_method_sigs();
+    void emit_the_class_struct();
 };
 
 #endif //AST_CODEGENCONTEXT_H

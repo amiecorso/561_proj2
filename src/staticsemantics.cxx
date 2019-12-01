@@ -372,15 +372,18 @@ class StaticSemantics {
             MethodTable objprint("PRINT");
             objprint.returntype = "Obj";
             objprint.formalargtypes.push_back("Obj");
+            objprint.inheritedfrom = "Obj";
             obj.methods["PRINT"] = objprint;
             MethodTable objstring("STRING");
             objstring.returntype = "String";
             objstring.formalargtypes.push_back("Obj");
+            objstring.inheritedfrom = "Obj";
             obj.methods["STRING"] = objstring;
             MethodTable objequals("EQUALS");
             objequals.returntype = "Boolean";
             objequals.formalargtypes.push_back("Obj");
             objequals.formalargtypes.push_back("Obj");
+            objequals.inheritedfrom = "Obj";
             obj.methods["EQUALS"] = objequals;
             obj.resolved = 1;
             obj.methodlist.push_back("STRING");

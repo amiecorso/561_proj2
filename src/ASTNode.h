@@ -255,6 +255,7 @@ namespace AST {
             ASTNode& returns_;
             Block& statements_;
             
+            void genR(Context *con, string targreg) override;
             explicit Method(ASTNode& name, Formals& formals, ASTNode& returns, Block& statements) :
             name_{name}, formals_{formals}, returns_{returns}, statements_{statements} {}
             int type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
@@ -478,7 +479,7 @@ namespace AST {
                 con->emit("typedef struct class_" + classname + "_struct* class_" + classname + ";");
                 con->emit("");
                 con->emit("typedef struct obj_" + classname + "_struct {");
-                con->emit("\tclass_" + classname + " clazz;");
+                con->emit("class_" + classname + " clazz;");
                 con->emit_instance_vars();
                 con->emit("} * obj_" + classname + ";");
                 con->emit("");
@@ -488,8 +489,14 @@ namespace AST {
                 // constructor
                 con->emit("obj_" + classname + " (*constructor) (" + con->get_formal_argtypes("constructor") + ");");
                 con->emit_method_sigs(); // rest of the methods
-                con->emit("};");
+                con->emit("};\n");
                 con->emit("extern class_" + classname + " the_class_" + classname + ";");
+                // now populate constructor
+                con->emit("");
+                constructor_.genR(con, targreg);
+                methods_.genR(con, targreg);
+                // TODO: fill out the_class_struct
+                con->emit_the_class_struct();
             }
 
             explicit Class(Ident& name, Ident& super,
