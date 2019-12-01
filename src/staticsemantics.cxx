@@ -370,19 +370,22 @@ class StaticSemantics {
             TypeNode obj("Obj");
             obj.parent = "TYPE_ERROR";
             MethodTable objprint("PRINT");
-            objprint.returntype = "Nothing";
+            objprint.returntype = "Obj";
+            objprint.formalargtypes.push_back("Obj");
             obj.methods["PRINT"] = objprint;
             MethodTable objstring("STRING");
             objstring.returntype = "String";
+            objstring.formalargtypes.push_back("Obj");
             obj.methods["STRING"] = objstring;
             MethodTable objequals("EQUALS");
             objequals.returntype = "Boolean";
+            objequals.formalargtypes.push_back("Obj");
+            objequals.formalargtypes.push_back("Obj");
             obj.methods["EQUALS"] = objequals;
             obj.resolved = 1;
-            for (map<string, MethodTable>::iterator iter = obj.methods.begin(); iter != obj.methods.end(); ++iter) {
-                obj.methods[iter->first].inheritedfrom = "Obj";
-                obj.methodlist.push_back(iter->first);
-            }
+            obj.methodlist.push_back("STRING");
+            obj.methodlist.push_back("PRINT");
+            obj.methodlist.push_back("EQUALS");
             hierarchy["Obj"] = obj;
 
             TypeNode integer("Int");

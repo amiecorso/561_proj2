@@ -90,3 +90,34 @@ void Context::emit_instance_vars() {
         emit("\tobj_" + iter->second + " " + iter->first + ";");
     }
 }
+
+string Context::get_formal_argtypes(string methodname) {
+    TypeNode classnode = ssc->hierarchy[classname];
+    MethodTable method;
+    if (methodname == "constructor") {
+        method = classnode.construct;
+    }
+    else {
+        method = classnode.methods[methodname];
+    }
+    string formals = "";
+    for (string s: method.formalargtypes) {
+        formals += "obj_";
+        formals += s;
+        formals += ", ";
+    }
+    int strlen = formals.length();
+    if (strlen > 2) {
+        formals = formals.erase(strlen - 2, 2); // erase the final ", "
+    }
+    return formals;
+}
+
+void Context::emit_method_sigs() {
+    TypeNode classnode = ssc->hierarchy[classname];
+    for (string method: classnode.methodlist) {
+        MethodTable mt = classnode.methods[method];
+        emit("obj_" + mt.returntype + " (*" + method + ") (" + get_formal_argtypes(method) + ");");
+    }
+}
+

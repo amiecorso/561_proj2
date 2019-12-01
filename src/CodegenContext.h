@@ -33,6 +33,8 @@ public:
     string get_type(AST::ASTNode& node);
     string new_branch_label(const char* prefix);
     void emit_instance_vars();
+    string get_formal_argtypes(string methodname);
+    void emit_method_sigs();
 };
 
 #endif //AST_CODEGENCONTEXT_H

@@ -1,4 +1,4 @@
-while 5 > 8 {
-    x = 4;
-}
-x = 3;
+ class Pt(x: Int, y: Int) {
+     this.x = x;
+     this.y = y;
+ }

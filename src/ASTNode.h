@@ -485,19 +485,11 @@ namespace AST {
                 con->emit("struct class_" + classname + "_struct the_class_" + classname + "_struct;");
                 con->emit("");
                 con->emit("struct class_" + classname + "_struct {");
-                // methods! return types, method names, formal arg types (need to populate in hierarchy?)
-                /*
-                        struct class_Pt_struct {
-                        obj_Pt (*constructor) (obj_Int, obj_Int );  
-                        obj_String (*STRING) (obj_Obj);           // inherit
-                        obj_Pt (*PRINT) (obj_Pt);                 // overridden
-                        obj_Boolean (*EQUALS) (obj_Obj, obj_Obj); // inherit
-                        obj_Pt (*PLUS) (obj_Pt, obj_Pt);          // introduced
-                        };
-
-                        extern class_Pt the_class_Pt;
-
-                */
+                // constructor
+                con->emit("obj_" + classname + " (*constructor) (" + con->get_formal_argtypes("constructor") + ");");
+                con->emit_method_sigs(); // rest of the methods
+                con->emit("};");
+                con->emit("extern class_" + classname + " the_class_" + classname + ";");
             }
 
             explicit Class(Ident& name, Ident& super,
