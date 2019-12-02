@@ -13,20 +13,22 @@ namespace AST {
 
     void Method::genR(Context *con, string targreg) {
         string methodname = name_.get_var();
-        TypeNode classnode = con->ssc->hierarchy[con->classname];
+        Context *copycon = new Context(*con);
+        copycon->methodname = methodname;
+        TypeNode classnode = con->ssc->hierarchy[copycon->classname];
         MethodTable mt = classnode.methods[methodname];
-        con->emit("");
-        if (con->classname == methodname) { // constructor
-            con->emit("obj_" + methodname + " new_" + methodname + "(" + con->get_formal_argtypes("constructor") + ") {");
-            con->emit("obj_" + methodname + " new_thing = (obj_" + methodname + ") malloc(sizeof(struct obj_" + methodname + "_struct));");
-            con->emit("new_thing->clazz = the_class_" + methodname + ";");
+        copycon->emit("");
+        if (copycon->classname == methodname) { // constructor
+            copycon->emit("obj_" + methodname + " new_" + methodname + "(" + copycon->get_formal_argtypes("constructor") + ") {");
+            copycon->emit("obj_" + methodname + " new_thing = (obj_" + methodname + ") malloc(sizeof(struct obj_" + methodname + "_struct));");
+            copycon->emit("new_thing->clazz = the_class_" + methodname + ";");
         }
         else { // not constructor
-            con->emit("obj_" + mt.returntype + " " + con->classname + "_method_" + methodname + "(" + con->get_formal_argtypes(methodname) + ") {");
+            copycon->emit("obj_" + mt.returntype + " " + copycon->classname + "_method_" + methodname + "(" + copycon->get_formal_argtypes(methodname) + ") {");
         }
-        statements_.genR(con, targreg);
-        con->emit("}");
-        con->emit("");
+        statements_.genR(copycon, targreg);
+        copycon->emit("}");
+        copycon->emit("");
     }
 
     int Program::initcheck(set<string>* vars, StaticSemantics* ssc) {
@@ -217,7 +219,6 @@ namespace AST {
 
     int Methods::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) {
         //cout << "ENTERING: Methods::type_infer" << endl;
-        int returnval = 0;
         for (Method* method: elements_) {
             string methodname = method->name_.get_var();
             TypeNode classentry = ssc->hierarchy[info->classname];
@@ -226,7 +227,6 @@ namespace AST {
             map<string, string> oldmethodvars = map<string, string>(*methodvars); // copy constructor?
             class_and_method* methodinfo = new class_and_method(info->classname, methodname);
             method->type_infer(ssc, methodvars, methodinfo);
-            // WE WILL FIGURE OUT RETURN TYPE LATER
             // Before we remove them, are the class instance vars being assigned conformant types?
             map<string, string> classinstance = classentry.instance_vars;
             for(map<string, string>::iterator iter = methodvars->begin(); iter != methodvars->end(); ++iter) {
@@ -240,25 +240,8 @@ namespace AST {
                     }
                 }
             }
-            // at this point, we need to REMOVE any class instance variables from the method table:
-            vector<string> erasables = vector<string>();
-            for(map<string, string>::iterator iter = methodvars->begin(); iter != methodvars->end(); ++iter) {
-                if (classinstance.count(iter->first)) { // if this var is in the class instance table
-                    erasables.push_back(iter->first);
-                }
-            }
-            for (string eraseme: erasables) {
-                if (methodvars->count(eraseme)) {
-                    methodvars->erase(eraseme);// remove it
-                }
-            }
-            // finally, we need to decide if this method actually changed anything!
-            if (!ssc->compare_maps(oldmethodvars, *methodvars)) { // maps not equal
-                returnval = 1;
-            }
-
         }
-        return returnval;
+        return 0;
     }
 
     int Classes::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) {
@@ -293,10 +276,13 @@ namespace AST {
             //cout << "ENTERING Class::type_infer" << endl;
             info->print();
             map<string, string>* classinstancevars = &(ssc->hierarchy[info->classname].instance_vars);
-            map<string, string>* construct_instvars = ssc->hierarchy[info->classname].construct.vars;
+            TypeNode * classnode = &ssc->hierarchy[info->classname];
+            MethodTable * constructor = &classnode->construct;
+            map<string, string>* construct_instvars = constructor->vars;
             if (constructor_.type_infer(ssc, construct_instvars, info)) {
                 returnval = 1;
             }
+
             // update class-level instance vars
             for(map<string, string>::iterator iter = classinstancevars->begin(); iter != classinstancevars->end(); ++iter) {
                 if (iter->first.rfind("this", 0) == 0) {
@@ -307,7 +293,8 @@ namespace AST {
                     }
                 }   
             }
-            (*classinstancevars)["this"] = name_.get_var(); // put a this in there!
+            (*classinstancevars)["this"] = info->classname; // put a this in there!
+            (*construct_instvars)["this"] = info->classname;
 
             info = new class_and_method(name_.get_var(), "");
             if (methods_.type_infer(ssc, vt, info)) {

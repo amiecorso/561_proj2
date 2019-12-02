@@ -59,7 +59,7 @@ string Context::get_local_var(string &ident) {
         TypeNode classnode = ssc->hierarchy[classname];
         MethodTable methodt;
         map<string, string>* vars;
-        if (methodname == "constructor") {
+        if (methodname == "constructor" || methodname == classname) {
             methodt = classnode.construct;
             vars = methodt.vars;
         }

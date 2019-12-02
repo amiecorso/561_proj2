@@ -349,7 +349,13 @@ namespace AST {
     public:
         Load(LExpr &loc) : loc_{loc} {}
         void genR(Context *con, string targreg) override {
-            cout << "Load::GenR unimp" << endl;
+            string var = get_var();
+            string loc = con->get_local_var(var);
+            con->emit(targreg + " = " + loc + ";");
+        }
+        string genL(Context *con) override {
+            string var = get_var();
+            return con->get_local_var(var);
         }
         string get_var() override {return loc_.get_var();}
         void collect_vars(map<string, string>* vt) override {return;}
@@ -493,9 +499,10 @@ namespace AST {
                 con->emit("extern class_" + classname + " the_class_" + classname + ";");
                 // now populate constructor
                 con->emit("");
-                constructor_.genR(con, targreg);
+                Context * construct_con = new Context(*con);
+                construct_con->methodname = "constructor";
+                constructor_.genR(construct_con, targreg);
                 methods_.genR(con, targreg);
-                // TODO: fill out the_class_struct
                 con->emit_the_class_struct();
             }
 
@@ -758,6 +765,15 @@ namespace AST {
         Expr& left_;
         Ident& right_;
     public:
+        void genR(Context *con, string targreg) override {
+            string var = get_var();
+            string loc = con->get_local_var(var);
+            con->emit(targreg + " = " + loc + ";");
+        }
+        string genL(Context *con) override {
+            string var = get_var();
+            return con->get_local_var(var);
+        }
         string get_var() override {return left_.get_var() + "." + right_.get_var();}
         void collect_vars(map<string, string>* vt) override { return; }
         string get_type(map<string, string>* vt, StaticSemantics* ssc, string classname) override;
