@@ -290,7 +290,6 @@ namespace AST {
     string Class::type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) {
             int returnval = 0;
             //cout << "ENTERING Class::type_infer" << endl;
-            info->print();
             map<string, string>* classinstancevars = &(ssc->hierarchy[info->classname].instance_vars);
             TypeNode * classnode = &ssc->hierarchy[info->classname];
             MethodTable * constructor = &classnode->construct;

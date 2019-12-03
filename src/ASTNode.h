@@ -26,15 +26,10 @@ class class_and_method {
             this->classname = classname;
             this->methodname = method;
         }
-        void print( ) {
-            //cout << "\t\t\t classname: " << this->classname << endl;
-            //cout << "\t\t\t methodname: " << this->methodname << endl;
-        }
 };
 
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
-
     // Json conversion and pretty-printing can pass around a print context object
     // to keep track of indentation, and possibly other things.
     class AST_print_context {
@@ -82,17 +77,6 @@ namespace AST {
         void json(ostream& out, AST_print_context& ctx) override;
     };
 
-    /*
-     * Abstract base class for nodes that have sequences
-     * of children, e.g., block of statements, sequence of
-     * classes.  These may be able to share some operations,
-     * especially when applying a method to the sequence just
-     * means applying the method to each element of the sequence.
-     * We need a different kind of sequence depending on type of
-     * elements if we want to access elements without casting while
-     * still having access to their fields.
-     * (Will replace 'Seq')
-     */
     template<class Kind>
     class Seq : public ASTNode {
     public:
@@ -116,7 +100,6 @@ namespace AST {
         }
         string type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
             //cout << "ENTERING Seq::type_infer" << endl;
-            //info->print();
             for (Kind *el: elements_) {el->type_infer(ssc, vt, info);}
             return "Nothing";
         };
@@ -185,18 +168,11 @@ namespace AST {
             void json(ostream& out, AST_print_context& ctx) override;
     };
 
-    /* A block is a sequence of statements or expressions.
-     * For simplicity we'll just make it a sequence of ASTNode,
-     * and leave it to the parser to build valid structures.
-     */
     class Block : public Seq<ASTNode> {
     public:
         explicit Block() : Seq("Block") {}
      };
 
-    /* Formal arguments list is a list of
-     * identifier: type pairs.
-     */
     class Formal : public ASTNode {
         public:
             ASTNode& var_;
@@ -256,15 +232,6 @@ namespace AST {
         string type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override;
     };
 
-    /* An assignment has an lvalue (location to be assigned to)
-     * and an expression.  We evaluate the expression and place
-     * the value_ in the variable.  An assignment may also place a
-     * static type constraint on a variable.  This is logically a
-     * distinct operation, and could be represented as a separate statement,
-     * but it's convenient to keep it in the assignment since our syntax
-     * puts it there.
-     */
-
     class Statement : public ASTNode { 
     };
 
@@ -308,17 +275,12 @@ namespace AST {
 
     };
 
-    /* A statement could be just an expression ... but
-     * we might want to interpose a node here.
-     */
     class Expr : public Statement { 
         public:
     };
 
-    /* When an expression is an LExpr, we
-     * the LExpr denotes a location, and we
-     * need to load it.
-     */
+    /* When an expression is an LExpr, the LExpr denotes a location, 
+        and we need to load it. */
     class Load : public Expr {
         LExpr &loc_;
     public:
@@ -341,7 +303,6 @@ namespace AST {
         void json(ostream &out, AST_print_context &ctx) override;
     };
 
-    /* 'return' statement returns value from method */
     class Return : public Statement {
         ASTNode &expr_;
     public:
@@ -359,12 +320,6 @@ namespace AST {
         Seq<ASTNode> &truepart_; // Execute this block if the condition is true
         Seq<ASTNode> &falsepart_; // Execute this block if the condition is false
     public:
-
-
-        /* IF is a statement that executes either its true branch
-        * or its false branch.  The value it places into the target
-        * should be the value of whichever branch is taken.
-        */
         void genR(Context* con, string targreg) override {
             std::string thenpart = con->new_branch_label("then");
             std::string elsepart = con->new_branch_label("else");
@@ -439,10 +394,6 @@ namespace AST {
 
     };
 
-    /* A class has a name, a list of arguments, and a body
-    * consisting of a block (essentially the constructor)
-    * and a list of methods.
-    */
     class Class : public ASTNode {
         public:
             Ident& name_;
@@ -494,9 +445,6 @@ namespace AST {
             void json(ostream& out, AST_print_context& ctx) override;
     };
 
-    /* A Quack program begins with a sequence of zero or more
-     * class definitions.
-     */
     class Classes : public Seq<Class> {
     public:
         void genR(Context *con, string targreg) override {
@@ -586,10 +534,6 @@ namespace AST {
         }
     };
 
-    /* Constructors are different from other method calls. They
-      * are static (not looked up in the vtable), have no receiver
-      * object, and have their own type-checking rules.
-      */
     class Construct : public Expr {
         Ident&  method_;           /* Method name is same as class name */
         Actuals& actuals_;    /* Actual arguments to constructor */
@@ -605,10 +549,6 @@ namespace AST {
         void json(ostream& out, AST_print_context& ctx) override;
     };
 
-    /* Method calls are central to type checking and code
-     * generation ... and for us, the operators +, -, etc
-     * are method calls to specially named methods.
-     */
     class Call : public Expr {
         Expr& receiver_;        /* Expression computing the receiver object */
         Ident& method_;         /* Identifier of the method */
@@ -650,10 +590,6 @@ namespace AST {
         void json(ostream& out, AST_print_context& ctx) override;
     };
 
-    // Virtual base class for binary operations.
-    // Does NOT include +, -, *, /, etc, which
-    // are method calls.
-    // Does include And, Or, Dot, ...
    class BinOp : public Expr {
     protected:
         string opsym;
@@ -670,7 +606,9 @@ namespace AST {
        explicit And(ASTNode& left, ASTNode& right) :
           BinOp("And", left, right) {}
         string type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
-            cout << "UNIMP TYPEINFER AND" << endl;
+            string left_type = left_.type_infer(ssc, vt, info);
+            string right_type = right_.type_infer(ssc, vt, info);
+            if (left_type != "Boolean" || right_type != "Boolean") {return "And:TypeError";}
             return "Boolean";
         }
         int initcheck(set<string>* vars) override {
@@ -685,7 +623,9 @@ namespace AST {
         explicit Or(ASTNode& left, ASTNode& right) :
                 BinOp("Or", left, right) {}
         string type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
-            cout << "UNIMP TYPEINFER OR" << endl;
+            string left_type = left_.type_infer(ssc, vt, info);
+            string right_type = right_.type_infer(ssc, vt, info);
+            if (left_type != "Boolean" || right_type != "Boolean") {return "Or:TypeError";}
             return "Boolean";
         }
         int initcheck(set<string>* vars) override {
@@ -701,7 +641,8 @@ namespace AST {
         explicit Not(ASTNode& left ):
             left_{left}  {}
         string type_infer(StaticSemantics* ssc, map<string, string>* vt, class_and_method* info) override {
-            cout << "UNIMP TYPEINFER NOT" << endl;
+            string left_type = left_.type_infer(ssc, vt, info);
+            if (left_type != "Boolean") {return "Not:TypeError";}
             return "Boolean";
         }
         int initcheck(set<string>* vars) override {
@@ -711,12 +652,6 @@ namespace AST {
         void json(ostream& out, AST_print_context& ctx) override;
     };
 
-    /* Can a field de-reference (expr . IDENT) be a binary
-     * operation?  It can be evaluated to a location (l_exp),
-     * whereas an operation like * and + cannot, but maybe that's
-     * ok.  We'll tentatively group it with Binop and consider
-     * changing it later if we need to make the distinction.
-     */
     class Dot : public LExpr {
         Expr& left_;
         Ident& right_;
@@ -745,9 +680,6 @@ namespace AST {
         void json(ostream& out, AST_print_context& ctx) override;
     };
 
-    /* A program has a set of classes (in any order) and a block of
-     * statements.
-     */
     class Program : public ASTNode {
     public:
         Classes& classes_;
