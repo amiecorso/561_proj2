@@ -118,6 +118,7 @@ class StaticSemantics {
     public:
         AST::ASTNode* astroot;
         int found_error;
+        int changed;
         map<string, TypeNode> hierarchy;
         map<string, Edge*> edges;
         vector<string> sortedclasses;
@@ -125,6 +126,7 @@ class StaticSemantics {
         StaticSemantics(AST::ASTNode* root) { // parameterized constructor
             astroot = root;
             found_error = 0;
+            changed = 1;
             hierarchy = map<string, TypeNode>();
             edges = map<string, Edge*>();
             sortedclasses = vector<string>();
@@ -354,9 +356,9 @@ class StaticSemantics {
 
         map<string, TypeNode>* typeCheck() {
             AST::Program *root = (AST::Program*) astroot;
-            int change_made = 1;
-            while (change_made) {
-                change_made = root->type_infer(this, nullptr, nullptr); 
+            while (changed) {
+                changed = 0;
+                root->type_infer(this, nullptr, nullptr); 
             }
             return &this->hierarchy;
         } // end typeCheck
@@ -419,9 +421,6 @@ class StaticSemantics {
 
         void* checkAST() { // top-level
             populateClassHierarchy();
-            cout << " *********************** CH BEFORE TYPE CHECKING *****************" << endl;
-            printClassHierarchy();
-
             if (!populateEdges()) {
                 return nullptr;
             }
@@ -435,7 +434,6 @@ class StaticSemantics {
             }
             toposort();
             inherit_methods();
-            cout << " *********************** CH AFTER INHERIT METHDOS *****************" << endl;
             printClassHierarchy();
             AST::Program *root = (AST::Program*) astroot;
             set<string> *vars = new set<string>;

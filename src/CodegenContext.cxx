@@ -7,7 +7,10 @@
 
 using namespace std;
 
-void Context::emit(string s) { object_code << s  << endl; }
+void Context::emit(string s) { 
+    object_code << s  << endl; 
+    cout << s << endl;
+}
 
 /* Getting the name of a "register" (really a local variable in C)
     * has the side effect of emitting a declaration for the variable.
@@ -30,24 +33,25 @@ void Context::free_reg(string reg) {
     */    
 
 string Context::get_type(AST::ASTNode& node) {
-       TypeNode classnode = ssc->hierarchy[classname];
-        MethodTable methodt;
-        map<string, string>* vars;
-        if (methodname == "constructor") {
-            methodt = classnode.construct;
+    TypeNode classnode = ssc->hierarchy[classname];
+    MethodTable methodt;
+    map<string, string>* vars;
+    if (methodname == "constructor" || methodname == classname) {
+        methodt = classnode.construct;
+        vars = methodt.vars;
+    }
+    else {
+        if (methodname == "__pgm__") {
+            vars = &classnode.instance_vars;
+        }
+        else{ 
+            methodt = classnode.methods[methodname];
             vars = methodt.vars;
         }
-        else {
-            if (methodname == "__pgm__") {
-                vars = &classnode.instance_vars;
-            }
-            else{ 
-                methodt = classnode.methods[methodname];
-                vars = methodt.vars;
-            }
-        }
-        string type = node.get_type(vars, ssc, classname);
-        return type;
+    }
+    class_and_method *info = new class_and_method(classname, methodname);
+    string type = node.type_infer(ssc, vars, info);
+    return type;
 }
 
 string Context::get_local_var(string &ident) {

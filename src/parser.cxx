@@ -10,6 +10,7 @@
 #include "CodegenContext.h"
 
 #include <iostream>
+#include <fstream>
 #include <unistd.h>  // getopt is here
 
 class Driver {
@@ -45,9 +46,13 @@ private:
 
 void generate_code(AST::ASTNode *root, StaticSemantics* ssc) {
     AST::Program *astroot = (AST::Program*) root;
-    Context ctx(std::cout, ssc, "", "");
+    ofstream outfile;
+    outfile.open("quackmain.c");
+    //outfile << "Writing this to a file.\n";
+    Context ctx(outfile, ssc, "", "");
     // Prologue
     ctx.emit("#include <stdio.h>");
+    ctx.emit("#include \"Builtins.h\"");
     ctx.emit("int main(int argc, char **argv) {");
     // Body of generated code
     std::string target = ctx.alloc_reg("Obj");
@@ -56,6 +61,7 @@ void generate_code(AST::ASTNode *root, StaticSemantics* ssc) {
     //ctx.emit(std::string(R"(printf("-> %d\n",)")
     //    + target + ");");
     ctx.emit("}");
+    outfile.close();
 }
 
 int main(int argc, char **argv) {
